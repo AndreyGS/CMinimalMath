@@ -11,7 +11,7 @@ This program defines a surrogate type (structure) - sldouble, that holds differe
 - \_nsign - the sign of the number (1 - is for negative | 0 - is for positive);
 - \_flags - currently only two flags in this implementation availible - FINAL and HASDOUBLE;
 
-Java version has more fields and more functionality. More of it, there was done almost all main math operations including pow() as analogue of Math.pow(). So if I was planning to transfer all of the rest functions that are presents in Java version, more fields and flags are also should be here.
+Java version has more fields and more functionality. More of it, there were done almost all main math operations including pow() as analogue of Math.pow(). So if I was planning to transfer all of the rest functions that are presents in Java version, more fields and flags are also should be here.
 
 So, refered type is taking a part in math calculations that only include summing and bitwise operators, to perform multiplication here. I know, I know - it's not so hard to implement such logic, but as I said before - here presents only this function. In Java version there is all gamma of all main math operations performed on similar way.
 

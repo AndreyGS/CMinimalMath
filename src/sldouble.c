@@ -352,13 +352,18 @@ double get_ieee754(sldouble *sd)
 
     if (sd->_nsign) raw |= 0x8000000000000000;
 
-    /* Compiler put a warning when we directly cast vars like we did in
-     * next return statement. And if we don't want to see this:
-     *
-     * char *p = (char *) &raw;
-     * return sd->_dbl = *(double *) p;
+    /* Compiler put a warning on -O2 and -O3 optimization levels 
+	 * when we directly cast vars if we did like this:
+	 *
+	 * sd->_dbl = *(double *) &raw;
+	 *
+	 * So to not broke opmization algorithms
+	 * we need to add an intermidiate  step.
      */
-    return sd->_dbl = *(double *) &raw;
+    char *p = (char *) &raw;
+    return sd->_dbl = *(double *) p;
+	
+	//return sd->_dbl = *(double *) &raw;
 }
 
 int get_number_of_leading_zeros_ui64(uint64_t num)

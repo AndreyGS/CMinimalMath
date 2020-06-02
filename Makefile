@@ -1,7 +1,7 @@
 CC=gcc
 OBJECTS=./src/sldouble.c ./src/sldtestunit.c
 OBJECTSGL=./src/sldouble.c ./src/sldtestunit_gl.c
-CFLAGS=-O3
+CFLAGS=-Wall -O3
 CFLAGSGL=$(shell pkg-config --cflags glib-2.0)
 LIBSGL=$(shell pkg-config --libs glib-2.0)
 
