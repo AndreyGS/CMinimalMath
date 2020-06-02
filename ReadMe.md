@@ -29,13 +29,13 @@ make\
 &nbsp;&nbsp;&nbsp;&nbsp;or\
 cc -Wall -O3 ./src/sldouble.c ./src/sldtestunit.c -o sldmult\
 2.\
-./sldmult \[big_test_accuracy(int)] || \[-f] || \[-s] || \[\[factor1(double) factor2(double)]]\
+./sldmult \[big_test_accuracy(int)] || \[-f] || \[-s] || \[\[factor1(double)] \[factor2(double)]]\
 \
 \[big_test_accuracy] - test for 800000 multiplications with accuracy as integral with maximum \
 of 16 digits after decimal point. This test is analogue for \
 \[-f] - fpu speed test\
 \[-s] - sldmult speed test\
-\[factor1 factor2] - test of arbitary numbers multimplication\
+\[\[factor1] \[factor2]] - test of arbitary numbers multimplication\
 without parameters (default) - same as ./sldmult 12\
 \
 GLib test (if you have glib-2.0 library):\
