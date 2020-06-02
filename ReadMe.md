@@ -44,7 +44,7 @@ make gltest\
 &nbsp;&nbsp;&nbsp;&nbsp;or\
 cc -Wall $(shell pkg-config --cflags glib-2.0) ./src/sldouble.c ./src/sldtestunit_gl.c $(shell pkg-config --libs glib-2.0) -o glmulttest\
 2.\
-./glmulttest\
+./glmulttest
 
 ## License
 
