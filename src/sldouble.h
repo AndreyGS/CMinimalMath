@@ -13,9 +13,10 @@ typedef struct {
 
 enum { FINAL = 1, HASDOUBLE = 2 };
 
+sldouble getsldouble_d(double d);
+sldouble getsldouble_c(const sldouble *sd);
 double mult_by_sd(double d1, double d2);
 double get_ieee754(sldouble *sd);
-sldouble getsldouble_d(double d);
 
 int get_number_of_leading_zeros_ui64(uint64_t num);
 int get_number_of_trailing_zeros_ui64(uint64_t num);

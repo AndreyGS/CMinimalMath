@@ -1,8 +1,6 @@
 #include <math.h>   // NAN +-INFINITY
 #include "sldouble.h"
 
-sldouble _inner_mult(sldouble *sd1, sldouble *sd2);
-
 sldouble getsldouble_d(double d)
 {
     sldouble sd;    
@@ -134,32 +132,37 @@ sldouble getsldouble_d(double d)
     return sd;
 }
 
-double mult_by_sd(double d1, double d2)
-{
-    sldouble sd1 = getsldouble_d(d1),
-             sd2 = getsldouble_d(d2);
-
-    sldouble sd = _inner_mult(&sd1, &sd2);
-
-    return get_ieee754(&sd);
+sldouble getsldouble_c(const sldouble *sd) {
+	sldouble sdc;
+	sdc._raw = sd->_raw;
+	sdc._len = sd->_len;
+	sdc._exp = sd->_exp;
+	sdc._nsign = sd->_nsign;
+	sdc._flags = sd->_flags;
+	if (sd->_flags & HASDOUBLE) sdc._dbl = sd->_dbl;
+	
+	return sdc;
 }
 
-sldouble _inner_mult(sldouble *sd1, sldouble *sd2)
+sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
 {
+	sldouble sd;
+	
     if ((sd1->_flags & FINAL) || (sd2->_flags & FINAL)) {
-        sldouble *sd;
+		const sldouble *sdp;
         if (sd2->_flags & FINAL) {
-            sd = sd1;
+            sdp = sd1;
             sd1 = sd2;
-            sd2 = sd;
+            sd2 = sdp;
         }
         double dbl = sd1->_dbl;
 
-        if (dbl != dbl) return *sd1;
-        if (dbl == 1.0) return *sd2;
-        if (dbl == -1.0) { 
-            switch_sd_sign(sd2); 
-            return *sd2;
+        if (dbl != dbl) return getsldouble_d(NAN);
+        if (dbl == 1.0) return getsldouble_c(sd2);
+        if (dbl == -1.0) {
+			sd = getsldouble_c(sd2);
+            switch_sd_sign(&sd); 
+            return sd;
         }
         if (dbl == 0.0) {
             if ((sd2->_flags & FINAL) && sd2->_exp == 1024)
@@ -246,8 +249,6 @@ sldouble _inner_mult(sldouble *sd1, sldouble *sd2)
         }
     }
 
-    sldouble sd;
-    
     if (sd1->_nsign == sd2->_nsign) sd._nsign = 0;
     else sd._nsign = 1;
     
@@ -264,6 +265,16 @@ sldouble _inner_mult(sldouble *sd1, sldouble *sd2)
     sd._flags = 0;
     
     return sd;
+}
+
+double mult_by_sd(double d1, double d2)
+{
+    sldouble sd1 = getsldouble_d(d1),
+             sd2 = getsldouble_d(d2);
+
+    sldouble sd = _inner_mult(&sd1, &sd2);
+
+    return get_ieee754(&sd);
 }
 
 double get_ieee754(sldouble *sd)
