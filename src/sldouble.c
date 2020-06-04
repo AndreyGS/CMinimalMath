@@ -355,15 +355,13 @@ double get_ieee754(sldouble *sd)
     /* Compiler put a warning on -O2 and -O3 optimization levels 
 	 * when we directly cast vars if we did like this:
 	 *
-	 * sd->_dbl = *(double *) &raw;
+	 * return sd->_dbl = *(double *) &raw;
 	 *
 	 * So to not broke opmization algorithms
 	 * we need to add an intermidiate  step.
      */
     char *p = (char *) &raw;
     return sd->_dbl = *(double *) p;
-	
-	//return sd->_dbl = *(double *) &raw;
 }
 
 int get_number_of_leading_zeros_ui64(uint64_t num)

@@ -57,7 +57,7 @@ int main(int argc, char **argv)
             printf("%s", argserror);
             return 1;
         } else {
-            printf("sldout: %e\nfpuout: %e\n", mult_by_sd(a, b), a*b);
+            printf("sldout: %.16e\nfpuout: %.16e\n", mult_by_sd(a, b), a*b);
         }
     } else {
         int i;

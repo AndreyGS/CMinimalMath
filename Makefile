@@ -10,11 +10,15 @@ sldmult: clean_mult
     
 glmulttest: clean_test_gl
 	$(CC) $(CFLAGSGL) $(OBJECTSGL) $(LIBSGL) -o $@
-    
+
 clean_mult:
 	rm -f sldmult
+	
+clean_mult_100pc:
+	rm -f sldmult_100pc
 
 clean_test_gl:
 	rm -f glmulttest
     
 clean: clean_mult clean_test_gl
+
