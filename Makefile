@@ -1,9 +1,9 @@
 CC=gcc
 OBJECTS=./src/sldouble.c ./src/sldtestunit.c
 OBJECTSGL=./src/sldouble.c ./src/sldtestunit_gl.c
-CFLAGS=-Wall -O3
-CFLAGSGL=$(shell pkg-config --cflags glib-2.0)
-LIBSGL=$(shell pkg-config --libs glib-2.0)
+CFLAGS=-w -O3
+CFLAGSGL=$(CFLAGS) `pkg-config --cflags glib-2.0`
+LIBSGL=`pkg-config --libs glib-2.0`
 
 sldmult: clean_mult
 	$(CC) $(CFLAGS) $(OBJECTS) -o $@

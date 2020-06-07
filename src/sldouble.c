@@ -6,7 +6,7 @@ sldouble getsldouble_d(double d)
     sldouble sd;    
     sd._dbl = d;
 
-    char *p = (char *) &d, *ps = p, c;
+    char *restrict p = (char *) &d, c;
     /* We are using this way to find out what the leading bit
      * status instead of simply number with zero comparison
      * through '-0.0' value, that is always shown as equal to '+0.0' */
@@ -52,7 +52,7 @@ sldouble getsldouble_d(double d)
     /* Next tricky statement we could split to:
      *      int16_t *e16 = (int16_t *) ps + 3;
      *      int64_t e = (int64_t) ((*e16 & 0x7ff0) >> 4) - 1023; */
-    int64_t e = (int64_t) ((*((int16_t *) ps + 3) & 0x7ff0) >> 4) - 1023;
+    int64_t e = (int64_t) ((*((int16_t *) p + 3) & 0x7ff0) >> 4) - 1023;
     /* If we've got denormal numbers on input, we need to
      * get a leftmost zeros preceding too, to compute final
      * exponent value and to get second bordrer for raw variable fetching,
@@ -86,6 +86,8 @@ sldouble getsldouble_d(double d)
             else               i += 7;
         }
         e -= i;
+		
+		p = (char *) &d;
     }
     
     sd._exp = e;
@@ -93,11 +95,11 @@ sldouble getsldouble_d(double d)
     /* Right offset for uint64_t raw fetching */
     int j = 0;
     /* To get the raw bits value, we need to do some tricky manipulations */
+	--p;
     /* First we need to calculate trailing zeros number */
-    p = ps-1;
-    /* There is no need to upperbound check, if it is not 0 or some of other
-     * special cases (and it is not, as we checked it in the begining of function), 
-     * than there must be at least one 1 in mantissa */
+    /* Here is no need to upperbound checking, if it is not 0 or some of other
+     * special cases (and it is not, as we checked it in the begining 
+     * of the function), than there must be at least one 1 in mantissa */
     while(*++p == 0) j+=8;
     
     c = *p;
@@ -117,11 +119,12 @@ sldouble getsldouble_d(double d)
         else if (c & 0x40) j += 6;
         else               j += 7;
     }
-
+	
+	p = (char *) &d;
     /* And the second - transform current value to integer raw */
     /* this statement can be expressed simpler by:
-     * uint64_t r = *((uint64_t *) ps); r = (r & 0x000fffffffffffff) >> j; */
-    uint64_t r = (*((uint64_t *) ps) & 0x000fffffffffffff) >> j;
+     * uint64_t r = *((uint64_t *) p); r = (r & 0x000fffffffffffff) >> j; */
+    uint64_t r = (*((uint64_t *) p) & 0x000fffffffffffff) >> j;
     sd._len = 53 - i - j;
     /* If we've got normal numbers we need to add leading '1' */
     if (e > -1022) r |= 0x0010000000000000 >> j;
@@ -132,7 +135,7 @@ sldouble getsldouble_d(double d)
     return sd;
 }
 
-sldouble getsldouble_c(const sldouble *sd) {
+sldouble getsldouble_c(const sldouble *restrict sd) {
 	sldouble sdc;
 	sdc._raw = sd->_raw;
 	sdc._len = sd->_len;
@@ -181,7 +184,7 @@ sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
 
     uint64_t product = 0, unit, raw;
     
-    /* It is overall faster to compare only lenghts of sd values
+    /* This is overall faster to compare only lenghts of sd values
      * rather than calculating the numbers of their ones */
     if (sd1->_len < sd2->_len) {
         unit = sd2->_raw;
@@ -277,7 +280,7 @@ double mult_by_sd(double d1, double d2)
     return get_ieee754(&sd);
 }
 
-double get_ieee754(sldouble *sd)
+double get_ieee754(sldouble *restrict sd)
 {
     if (sd->_flags & HASDOUBLE) return sd->_dbl;
     
@@ -371,13 +374,13 @@ double get_ieee754(sldouble *sd)
 	 * So to not broke opmization algorithms
 	 * we need to add an intermidiate  step.
      */
-    char *p = (char *) &raw;
+    char *restrict p = (char *) &raw;
     return sd->_dbl = *(double *) p;
 }
 
 int get_number_of_leading_zeros_ui64(uint64_t num)
 {
-    char *p = ((char *) &num) + 8, c;
+    char *restrict p = (char *) &num + 8, c;
     int n = 0;
     while (*--p == 0 && n < 64) n += 8;
    
@@ -397,7 +400,7 @@ int get_number_of_leading_zeros_ui64(uint64_t num)
 
 int get_number_of_trailing_zeros_ui64(uint64_t num)
 {   
-    char *p = (char *) &num - 1, c;
+    char *restrict p = (char *) &num - 1, c;
     int n = 0;
     while (*++p == 0 && n < 64) n += 8;
 
@@ -415,7 +418,7 @@ int get_number_of_trailing_zeros_ui64(uint64_t num)
     return n;
 }
 
-void switch_sd_sign(sldouble *sd)
+void switch_sd_sign(sldouble *restrict sd)
 {
     if ((sd->_flags & FINAL) && sd->_dbl != sd->_dbl) return;
     
