@@ -86,8 +86,8 @@ sldouble getsldouble_d(double d)
             else               i += 7;
         }
         e -= i;
-		
-		p = (char *) &d;
+        
+        p = (char *) &d;
     }
     
     sd._exp = e;
@@ -95,7 +95,7 @@ sldouble getsldouble_d(double d)
     /* Right offset for uint64_t raw fetching */
     int j = 0;
     /* To get the raw bits value, we need to do some tricky manipulations */
-	--p;
+    --p;
     /* First we need to calculate trailing zeros number */
     /* Here is no need to upperbound checking, if it is not 0 or some of other
      * special cases (and it is not, as we checked it in the begining 
@@ -119,8 +119,8 @@ sldouble getsldouble_d(double d)
         else if (c & 0x40) j += 6;
         else               j += 7;
     }
-	
-	p = (char *) &d;
+    
+    p = (char *) &d;
     /* And the second - transform current value to integer raw */
     /* this statement can be expressed simpler by:
      * uint64_t r = *((uint64_t *) p); r = (r & 0x000fffffffffffff) >> j; */
@@ -136,21 +136,21 @@ sldouble getsldouble_d(double d)
 }
 
 sldouble getsldouble_c(const sldouble *restrict sd) {
-	sldouble sdc = {._dbl = sd->_dbl,
-					._raw = sd->_raw,
+    sldouble sdc = {._dbl = sd->_dbl,
+                    ._raw = sd->_raw,
                     ._exp = sd->_exp,
                     ._len = sd->_len, 
                     ._nsign = sd->_nsign,
                     ._flags = sd->_flags};
-	return sdc;
+    return sdc;
 }
 
 sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
 {
-	sldouble sd;
-	
+    sldouble sd;
+    
     if ((sd1->_flags & SPECIALV) || (sd2->_flags & SPECIALV)) {
-		const sldouble *sdp;
+        const sldouble *sdp;
         if (sd2->_flags & SPECIALV) {
             sdp = sd1;
             sd1 = sd2;
@@ -161,7 +161,7 @@ sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
         if (dbl != dbl) return getsldouble_d(NAN);
         if (dbl == 1.0) return getsldouble_c(sd2);
         if (dbl == -1.0) {
-			sd = getsldouble_c(sd2);
+            sd = getsldouble_c(sd2);
             switch_sd_sign(&sd); 
             return sd;
         }
@@ -256,7 +256,7 @@ sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
     int i = get_number_of_leading_zeros_ui64(product);
     /* (64 - i + biasproduct) - is result length of virtual product raw;
      * 'virtual' is because actual legth is '64' (as length of uint64_t),
-     * but we substracting leading zeros and adding SPECIALV bias */
+     * but we substracting leading zeros and adding final bias */
     sd._exp = 64 - i + biasproduct 
             - sd1->_len - sd2->_len + 1 + sd1->_exp + sd2->_exp;
     
@@ -365,13 +365,13 @@ double get_ieee754(sldouble *restrict sd)
     if (sd->_nsign) raw |= 0x8000000000000000;
 
     /* Compiler put a warning of strict aliasing on -O2 and -O3 
-	 * optimization levels when we directly cast vars 
-	 * if we did like this:
-	 *
-	 * return sd->_dbl = *(double *) &raw;
-	 *
-	 * So to not broke opmization algorithms
-	 * we need to add an intermidiate  step. */
+    * optimization levels when we directly cast vars 
+    * if we did like this:
+    *
+    * return sd->_dbl = *(double *) &raw;
+    *
+    * So to not broke opmization algorithms
+    * we need to add an intermidiate  step. */
     char *restrict p = (char *) &raw;
     return sd->_dbl = *(double *) p;
 }

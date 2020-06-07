@@ -113,20 +113,20 @@ void test_mult(int acc)
     char a2[25];
     
     for (i = 0; i < 400; ++i) {
-		factor1 = factor1 / 10; 
+        factor1 = factor1 / 10; 
         
         printf("***\n%.2e power random factor\n\n", factor1);
         
-		factor2 = 1.0e+200;
+        factor2 = 1.0e+200;
         for (j = 0; j < 2000; ++j) {
-			if (j % 50 == 0) factor2 = factor2 / 10;
-			
+            if (j % 50 == 0) factor2 = factor2 / 10;
+            
             d1 = get_d_pseudo_random(j % 16) * factor1;
             d2 = get_d_pseudo_random((i+j+31) % 16) * factor2;
             
             if (j % 2 == 0) d1 = -d1;
-			if (j % 3 == 0) d2 = -d2;
-			
+            if (j % 3 == 0) d2 = -d2;
+            
             r1 = mult_by_sd(d1, d2);
             r2 = d1*d2;
             

@@ -5,7 +5,7 @@
 typedef struct {
     double _dbl;
     uint64_t _raw;
-	int64_t _exp;
+    int64_t _exp;
     int _len;
     int _nsign;
     int _flags;
