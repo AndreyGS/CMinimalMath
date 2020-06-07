@@ -13,14 +13,14 @@ sldouble getsldouble_d(double d)
     if (*(p + 7) & 0x80) sd._nsign = 1;
     else sd._nsign = 0;
 
-    /* There is a 7 special cases that are checking 'FINAL' flag here
+    /* There is a 7 special cases that are checking 'SPECIALV' flag here
      * +-INFINITY +-0 NAN +-1
      * in most times we can handle them all not by selecting in
      * the distant group, but if we do so, that will give us
      * overall speed up by excluding them from many of
      * calculations that are not necessary for them.
      *
-     * Also 'FINAL' flag is mean that HASDOUBLE flag is also presents. 
+     * Also 'SPECIALV' flag is mean that HASDOUBLE flag is also presents. 
      * It will simplify many of checkings in related functions */
     if (d == HUGE_VALL || d == -HUGE_VALL || d == 0.0) {
         sd._flags = 3;
@@ -54,14 +54,14 @@ sldouble getsldouble_d(double d)
      *      int64_t e = (int64_t) ((*e16 & 0x7ff0) >> 4) - 1023; */
     int64_t e = (int64_t) ((*((int16_t *) p + 3) & 0x7ff0) >> 4) - 1023;
     /* If we've got denormal numbers on input, we need to
-     * get a leftmost zeros preceding too, to compute final
+     * get a leftmost zeros preceding too, to compute SPECIALV
      * exponent value and to get second bordrer for raw variable fetching,
      * which is default in case of normal nombers */
     if (e == -1023) {
         p += 6;
         c = *p;
         /* i already is 0, so we need head condition check
-         * only for final 'else' working properly */
+         * only for SPECIALV 'else' working properly */
         if      (c & 0x08)      ;
         else if (c & 0x04) i = 1;
         else if (c & 0x02) i = 2;
@@ -136,13 +136,12 @@ sldouble getsldouble_d(double d)
 }
 
 sldouble getsldouble_c(const sldouble *restrict sd) {
-	sldouble sdc = {._raw = sd->_raw,
+	sldouble sdc = {._dbl = sd->_dbl,
+					._raw = sd->_raw,
                     ._exp = sd->_exp,
                     ._len = sd->_len, 
                     ._nsign = sd->_nsign,
                     ._flags = sd->_flags};
-	if (sd->_flags & HASDOUBLE) sdc._dbl = sd->_dbl;
-	
 	return sdc;
 }
 
@@ -150,9 +149,9 @@ sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
 {
 	sldouble sd;
 	
-    if ((sd1->_flags & FINAL) || (sd2->_flags & FINAL)) {
+    if ((sd1->_flags & SPECIALV) || (sd2->_flags & SPECIALV)) {
 		const sldouble *sdp;
-        if (sd2->_flags & FINAL) {
+        if (sd2->_flags & SPECIALV) {
             sdp = sd1;
             sd1 = sd2;
             sd2 = sdp;
@@ -167,14 +166,14 @@ sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
             return sd;
         }
         if (dbl == 0.0) {
-            if ((sd2->_flags & FINAL) && sd2->_exp == 1024)
+            if ((sd2->_flags & SPECIALV) && sd2->_exp == 1024)
                 return getsldouble_d(NAN);
             if (sd1->_nsign == sd2->_nsign)
                 return getsldouble_d(0.0);
             return getsldouble_d(-0.0);
         }
         
-        if ((sd2->_flags & FINAL) && sd2->_exp == 0 && sd2->_len == 0)
+        if ((sd2->_flags & SPECIALV) && sd2->_exp == 0 && sd2->_len == 0)
             return getsldouble_d(NAN);
         if (sd1->_nsign == sd2->_nsign)
             return getsldouble_d(INFINITY);
@@ -257,7 +256,7 @@ sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
     int i = get_number_of_leading_zeros_ui64(product);
     /* (64 - i + biasproduct) - is result length of virtual product raw;
      * 'virtual' is because actual legth is '64' (as length of uint64_t),
-     * but we substracting leading zeros and adding final bias */
+     * but we substracting leading zeros and adding SPECIALV bias */
     sd._exp = 64 - i + biasproduct 
             - sd1->_len - sd2->_len + 1 + sd1->_exp + sd2->_exp;
     
@@ -289,7 +288,7 @@ double get_ieee754(sldouble *restrict sd)
         sd->_exp = 1024;
         sd->_raw = 0;
         sd->_len = 0;
-        sd->_flags += 3; // HASDOUBLE | FINAL
+        sd->_flags += 3; // HASDOUBLE | SPECIALV
         /* We don't need to check for NAN, because we already have checked
          * above HASDOUBLE flag, and in NAN case it must return true */
         if (sd->_nsign) return sd->_dbl = -INFINITY;
@@ -419,7 +418,7 @@ int get_number_of_trailing_zeros_ui64(uint64_t num)
 
 void switch_sd_sign(sldouble *restrict sd)
 {
-    if ((sd->_flags & FINAL) && sd->_dbl != sd->_dbl) return;
+    if ((sd->_flags & SPECIALV) && sd->_dbl != sd->_dbl) return;
     
     if (sd->_flags & HASDOUBLE) sd->_dbl = -sd->_dbl;
     if (sd->_nsign) sd->_nsign = 0;

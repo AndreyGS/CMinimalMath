@@ -11,7 +11,7 @@ typedef struct {
     int _flags;
 } sldouble;
 
-enum { FINAL = 1, HASDOUBLE = 2 };
+enum { SPECIALV = 1, HASDOUBLE = 2 };
 
 sldouble getsldouble_d(double d);
 sldouble getsldouble_c(const sldouble *restrict sd);
