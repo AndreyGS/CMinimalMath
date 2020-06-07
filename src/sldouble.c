@@ -136,12 +136,11 @@ sldouble getsldouble_d(double d)
 }
 
 sldouble getsldouble_c(const sldouble *restrict sd) {
-	sldouble sdc;
-	sdc._raw = sd->_raw;
-	sdc._len = sd->_len;
-	sdc._exp = sd->_exp;
-	sdc._nsign = sd->_nsign;
-	sdc._flags = sd->_flags;
+	sldouble sdc = {._raw = sd->_raw,
+                    ._exp = sd->_exp,
+                    ._len = sd->_len, 
+                    ._nsign = sd->_nsign,
+                    ._flags = sd->_flags};
 	if (sd->_flags & HASDOUBLE) sdc._dbl = sd->_dbl;
 	
 	return sdc;
@@ -366,14 +365,14 @@ double get_ieee754(sldouble *restrict sd)
 
     if (sd->_nsign) raw |= 0x8000000000000000;
 
-    /* Compiler put a warning on -O2 and -O3 optimization levels 
-	 * when we directly cast vars if we did like this:
+    /* Compiler put a warning of strict aliasing on -O2 and -O3 
+	 * optimization levels when we directly cast vars 
+	 * if we did like this:
 	 *
 	 * return sd->_dbl = *(double *) &raw;
 	 *
 	 * So to not broke opmization algorithms
-	 * we need to add an intermidiate  step.
-     */
+	 * we need to add an intermidiate  step. */
     char *restrict p = (char *) &raw;
     return sd->_dbl = *(double *) p;
 }
