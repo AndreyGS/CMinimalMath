@@ -1,7 +1,7 @@
 #include <math.h>   // NAN +-INFINITY
 #include "sldouble.h"
 
-sldouble getsldouble_d(double d)
+sldouble get_sldouble_fromd(double d)
 {
     sldouble sd;    
     sd._dbl = d;
@@ -135,7 +135,7 @@ sldouble getsldouble_d(double d)
     return sd;
 }
 
-sldouble getsldouble_c(const sldouble *restrict sd) {
+sldouble get_sldouble_copy(const sldouble *restrict sd) {
     sldouble sdc = {._dbl = sd->_dbl,
                     ._raw = sd->_raw,
                     ._exp = sd->_exp,
@@ -145,7 +145,7 @@ sldouble getsldouble_c(const sldouble *restrict sd) {
     return sdc;
 }
 
-sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
+static sldouble inner_mult(const sldouble *sd1, const sldouble *sd2)
 {
     sldouble sd;
     
@@ -158,26 +158,26 @@ sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
         }
         double dbl = sd1->_dbl;
 
-        if (dbl != dbl) return getsldouble_d(NAN);
-        if (dbl == 1.0) return getsldouble_c(sd2);
+        if (dbl != dbl) return get_sldouble_fromd(NAN);
+        if (dbl == 1.0) return get_sldouble_copy(sd2);
         if (dbl == -1.0) {
-            sd = getsldouble_c(sd2);
+            sd = get_sldouble_copy(sd2);
             switch_sd_sign(&sd); 
             return sd;
         }
         if (dbl == 0.0) {
             if ((sd2->_flags & SPECIALV) && sd2->_exp == 1024)
-                return getsldouble_d(NAN);
+                return get_sldouble_fromd(NAN);
             if (sd1->_nsign == sd2->_nsign)
-                return getsldouble_d(0.0);
-            return getsldouble_d(-0.0);
+                return get_sldouble_fromd(0.0);
+            return get_sldouble_fromd(-0.0);
         }
         
         if ((sd2->_flags & SPECIALV) && sd2->_exp == 0 && sd2->_len == 0)
-            return getsldouble_d(NAN);
+            return get_sldouble_fromd(NAN);
         if (sd1->_nsign == sd2->_nsign)
-            return getsldouble_d(INFINITY);
-        return getsldouble_d(-INFINITY);
+            return get_sldouble_fromd(INFINITY);
+        return get_sldouble_fromd(-INFINITY);
     }
 
     uint64_t product = 0, unit, raw;
@@ -192,8 +192,7 @@ sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
         raw = sd2->_raw;
     }
     int biasproduct = 0; 
-    int leadzeros = get_number_of_leading_zeros_ui64(unit);
-    
+    int leadzeros = get_number_of_leading_zeros_64bit_var(&unit);
 
     for (int shift = 0, check, spaceneed; raw > 0;) {
         if (raw & 0x01) {
@@ -253,14 +252,14 @@ sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
     if (sd1->_nsign == sd2->_nsign) sd._nsign = 0;
     else sd._nsign = 1;
     
-    int i = get_number_of_leading_zeros_ui64(product);
+    int i = get_number_of_leading_zeros_64bit_var(&product);
     /* (64 - i + biasproduct) - is result length of virtual product raw;
      * 'virtual' is because actual legth is '64' (as length of uint64_t),
      * but we substracting leading zeros and adding final bias */
     sd._exp = 64 - i + biasproduct 
             - sd1->_len - sd2->_len + 1 + sd1->_exp + sd2->_exp;
     
-    int j = get_number_of_trailing_zeros_ui64(product);
+    int j = get_number_of_trailing_zeros_64bit_var(&product);
     sd._raw = product >> j;
     sd._len = 64-i-j;
     sd._flags = 0;
@@ -270,15 +269,15 @@ sldouble _inner_mult(const sldouble *sd1, const sldouble *sd2)
 
 double mult_by_sd(double d1, double d2)
 {
-    sldouble sd1 = getsldouble_d(d1),
-             sd2 = getsldouble_d(d2);
+    sldouble sd1 = get_sldouble_fromd(d1),
+             sd2 = get_sldouble_fromd(d2);
 
-    sldouble sd = _inner_mult(&sd1, &sd2);
+    sldouble sd = inner_mult(&sd1, &sd2);
 
-    return get_ieee754(&sd);
+    return get_double_ieee754(&sd);
 }
 
-double get_ieee754(sldouble *restrict sd)
+double get_double_ieee754(sldouble *restrict sd)
 {
     if (sd->_flags & HASDOUBLE) return sd->_dbl;
     
@@ -354,7 +353,7 @@ double get_ieee754(sldouble *restrict sd)
         raw <<= leftmost_fraction_significant_bit - len;
     }
 
-    sd->_raw = raw >> get_number_of_trailing_zeros_ui64(raw);
+    sd->_raw = raw >> get_number_of_trailing_zeros_64bit_var(&raw);
    
     /* Clearing leading bit and adding exp value in raw of normal number */
     if (exp > 0) {
@@ -376,9 +375,9 @@ double get_ieee754(sldouble *restrict sd)
     return sd->_dbl = *(double *) p;
 }
 
-int get_number_of_leading_zeros_ui64(uint64_t num)
+int get_number_of_leading_zeros_64bit_var(const void *restrict num)
 {
-    char *restrict p = (char *) &num + 8, c;
+    char *restrict p = (char *) num + 8, c;
     int n = 0;
     while (*--p == 0 && n < 64) n += 8;
    
@@ -396,9 +395,9 @@ int get_number_of_leading_zeros_ui64(uint64_t num)
     return n;
 }
 
-int get_number_of_trailing_zeros_ui64(uint64_t num)
+int get_number_of_trailing_zeros_64bit_var(const void *restrict num)
 {   
-    char *restrict p = (char *) &num - 1, c;
+    char *restrict p = (char *) num - 1, c;
     int n = 0;
     while (*++p == 0 && n < 64) n += 8;
 

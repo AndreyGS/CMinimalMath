@@ -26,7 +26,7 @@ double d1, d2;
         if (g_test_failed()) { \
             printf("---------------\n" \
                    "Current input with accuracy %.1e leads to fail:\n" \
-                   "%.16e * %.16e\nr1: %.16e\nr2: %.16e\n%d operations " \
+                   "%.16e * %.16e\nsld: %.16e\nfpu: %.16e\n%d operations " \
                    "were successfully executed in current test before\n" \
                    "---------------\n" \
                    , Accuracy, d1, d2, r1, r2, i); \

@@ -13,11 +13,11 @@ typedef struct {
 
 enum { SPECIALV = 1, HASDOUBLE = 2 };
 
-sldouble getsldouble_d(double d);
-sldouble getsldouble_c(const sldouble *restrict sd);
+sldouble get_sldouble_fromd(double d);
+sldouble get_sldouble_copy(const sldouble *restrict sd);
 double mult_by_sd(double d1, double d2);
-double get_ieee754(sldouble *restrict sd);
+double get_double_ieee754(sldouble *restrict sd);
 
-int get_number_of_leading_zeros_ui64(uint64_t num);
-int get_number_of_trailing_zeros_ui64(uint64_t num);
+int get_number_of_leading_zeros_64bit_var(const void *restrict num);
+int get_number_of_trailing_zeros_64bit_var(const void *restrict num);
 void switch_sd_sign(sldouble *restrict sd);

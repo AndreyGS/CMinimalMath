@@ -145,7 +145,7 @@ void test_mult(int acc)
                         r = -1;
                     }
                     if (r) {
-                        printf("in1: %.16e in2: %.16e\nr1: %.16e\nr2: %.16e\n"
+                        printf("in1: %.16e in2: %.16e\nsld: %.16e\nfpu: %.16e\n"
                                "\n------------------------------\n", 
                                 d1, d2, r1, r2);
                         counter++;
