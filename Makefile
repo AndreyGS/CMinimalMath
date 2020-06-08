@@ -7,7 +7,7 @@ LIBSGL=`pkg-config --libs glib-2.0`
 
 sldmult: clean_mult
 	$(CC) $(CFLAGS) $(OBJECTS) -o $@
-    
+ 
 glmulttest: clean_test_gl
 	$(CC) $(CFLAGSGL) $(OBJECTSGL) $(LIBSGL) -o $@
 

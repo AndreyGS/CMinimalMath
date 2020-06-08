@@ -1,7 +1,7 @@
 #include <math.h>   // NAN +-INFINITY
 #include "sldouble.h"
 
-sldouble get_sldouble_fromd(double d)
+sldouble get_sldouble_fromd(const double d)
 {
     sldouble sd;    
     sd._dbl = d;
@@ -31,8 +31,8 @@ sldouble get_sldouble_fromd(double d)
         return sd;
     } else if (d != d) {
         sd._flags = 3;
-        sd._raw = 1;
-        sd._len = 1;
+        sd._raw = 3;
+        sd._len = 2;
         sd._exp = 1024;
         return sd;
     } else if (d == 1.0 || d == -1.0) {
@@ -135,7 +135,7 @@ sldouble get_sldouble_fromd(double d)
     return sd;
 }
 
-sldouble get_sldouble_copy(const sldouble *restrict sd) {
+sldouble get_sldouble_copy(const sldouble *restrict const sd) {
     sldouble sdc = {._dbl = sd->_dbl,
                     ._raw = sd->_raw,
                     ._exp = sd->_exp,
@@ -267,7 +267,7 @@ static sldouble inner_mult(const sldouble *sd1, const sldouble *sd2)
     return sd;
 }
 
-double mult_by_sd(double d1, double d2)
+double mult_by_sd(const double d1, const double d2)
 {
     sldouble sd1 = get_sldouble_fromd(d1),
              sd2 = get_sldouble_fromd(d2);
@@ -277,7 +277,7 @@ double mult_by_sd(double d1, double d2)
     return get_double_ieee754(&sd);
 }
 
-double get_double_ieee754(sldouble *restrict sd)
+double get_double_ieee754(sldouble *restrict const sd)
 {
     if (sd->_flags & HASDOUBLE) return sd->_dbl;
     
@@ -302,7 +302,7 @@ double get_double_ieee754(sldouble *restrict sd)
     }
     
     uint64_t raw = sd->_raw;
-    int len = sd->_len;
+    const int len = sd->_len;
     
     int leftmost_fraction_significant_bit = 53;
     /* Denormal numbers special handling */
@@ -332,14 +332,14 @@ double get_double_ieee754(sldouble *restrict sd)
                     sd->_len = 0;
                     /* Here we're adding flags, and not just assignmenting
                      * through there can be another flags already set */
-                    sd->_flags += 3;
+                    sd->_flags |= 3;
                     if (sd->_nsign) return sd->_dbl = -INFINITY;
                     else return sd->_dbl = INFINITY;
                 } else if (exp == 1023) {
                     sd->_exp = 0;
                     sd->_raw = 1;
                     sd->_len = 1;
-                    sd->_flags += 3;
+                    sd->_flags |= 3;
                     if (sd->_nsign) return sd->_dbl = -1.0;
                     else return sd->_dbl = 1.0;
                 }
@@ -371,11 +371,11 @@ double get_double_ieee754(sldouble *restrict sd)
     *
     * So to not broke opmization algorithms
     * we need to add an intermidiate  step. */
-    char *restrict p = (char *) &raw;
+    const char *restrict const p = (const char *) &raw;
     return sd->_dbl = *(double *) p;
 }
 
-int get_number_of_leading_zeros_64bit_var(const void *restrict num)
+int get_number_of_leading_zeros_64bit_var(const void *restrict const num)
 {
     char *restrict p = (char *) num + 8, c;
     int n = 0;
@@ -395,7 +395,7 @@ int get_number_of_leading_zeros_64bit_var(const void *restrict num)
     return n;
 }
 
-int get_number_of_trailing_zeros_64bit_var(const void *restrict num)
+int get_number_of_trailing_zeros_64bit_var(const void *restrict const num)
 {   
     char *restrict p = (char *) num - 1, c;
     int n = 0;
@@ -415,7 +415,7 @@ int get_number_of_trailing_zeros_64bit_var(const void *restrict num)
     return n;
 }
 
-void switch_sd_sign(sldouble *restrict sd)
+void switch_sd_sign(sldouble *restrict const sd)
 {
     if ((sd->_flags & SPECIALV) && sd->_dbl != sd->_dbl) return;
     
