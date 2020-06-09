@@ -16,7 +16,6 @@ typedef struct sldouble {
 enum { SPECIALV = 1, HASDOUBLE = 2 };
 
 sldouble get_sldouble_fromd(double d);
-void get_sldouble_copy(sldouble *target, const sldouble *source);
 double mult_by_sd(double d1, double d2);
 double get_double_ieee754(sldouble *sd);
 

@@ -101,17 +101,6 @@ sldouble get_sldouble_fromd(const double d)
     return sd;
 }
 
-void get_sldouble_copy(sldouble *restrict const sd1, 
-                 const sldouble *restrict const sd2)
-{
-    sd1->_dbl = sd2->_dbl;
-    sd1->_raw = sd2->_raw;
-    sd1->_exp = sd2->_exp;
-    sd1->_len = sd2->_len; 
-    sd1->_nsign = sd2->_nsign;
-    sd1->_flags = sd2->_flags;
-}
-
 static void inner_mult(sldouble *restrict const sd, 
                  const sldouble *restrict const sd1,
                  const sldouble *restrict const sd2)
