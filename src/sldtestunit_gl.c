@@ -10,7 +10,7 @@ double d1, d2;
  * g_assert_cmpfloat_with_epsilon() if its missing 
  * on current glib version that is very likely */
 #define comp(Accuracy) \
-    for (int i = 0; i < 10000; i++) { \
+    for (int i = 0; i++ < 10000;) { \
         d1 = g_test_rand_double(); \
         d2 = g_test_rand_double(); \
         r1 = mult_by_sd(d1, d2); \
@@ -58,11 +58,16 @@ void test_06() {
     r1 = mult_by_sd(0.0, 100.0);
     r2 = 0.0 * 100.0;
     g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(100.0, 0.0);
+    g_assert_cmpfloat(r1, ==, r2);
     r1 = mult_by_sd(-0.0, 100);
     r2 = -0.0 * 100.0;
     char a1[25], a2[25];
     sprintf(a1, "%.16e", r1);
     sprintf(a2, "%.16e", r2);
+    g_assert_cmpstr(a1, ==, a2);
+    r1 = mult_by_sd(100.0, -0.0);
+    sprintf(a1, "%.16e", r1);
     g_assert_cmpstr(a1, ==, a2);
 }
 
@@ -70,8 +75,34 @@ void test_07() {
     r1 = mult_by_sd(1.0, 100.0);
     r2 = 1.0 * 100.0;
     g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(100.0, 1.0);
+    g_assert_cmpfloat(r1, ==, r2);
     r1 = mult_by_sd(-1.0, 100.0);
     r2 = -1.0 * 100.0;
+    g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(100.0, -1.0);
+    g_assert_cmpfloat(r1, ==, r2);
+    
+    r1 = mult_by_sd(16.0, 100.0);
+    r2 = 16.0 * 100.0;
+    g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(100.0, 16.0);
+    g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(-16.0, 100.0);
+    r2 = -16.0 * 100.0;
+    g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(100.0, -16.0);
+    g_assert_cmpfloat(r1, ==, r2);
+    
+    r1 = mult_by_sd(0.5, 100.0);
+    r2 = 0.5 * 100.0;
+    g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(100.0, 0.5);
+    g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(-0.5, 100.0);
+    r2 = -0.5 * 100.0;
+    g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(100.0, -0.5);
     g_assert_cmpfloat(r1, ==, r2);
 }
 
@@ -79,18 +110,37 @@ void test_08() {
     r1 = mult_by_sd(INFINITY, 100.0);
     r2 = INFINITY * 100.0;
     g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(100.0, INFINITY);
+    g_assert_cmpfloat(r1, ==, r2);
     r1 = mult_by_sd(-INFINITY, 100.0);
     r2 = -INFINITY * 100.0;
+    g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(100.0, -INFINITY);
+    
+    r1 = mult_by_sd(INFINITY, -INFINITY);
+    r2 = INFINITY * -INFINITY;
+    g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(-INFINITY, INFINITY);
+    g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(INFINITY, INFINITY);
+    r2 = INFINITY * INFINITY;
+    g_assert_cmpfloat(r1, ==, r2);
+    r1 = mult_by_sd(-INFINITY, -INFINITY);
+    r2 = -INFINITY * -INFINITY;
     g_assert_cmpfloat(r1, ==, r2);
 }
 
 void test_09() {
     r1 = mult_by_sd(INFINITY, 0.0);
     g_assert_cmpfloat(r1, !=, r1);
+    r1 = mult_by_sd(0.0, INFINITY);
+    g_assert_cmpfloat(r1, !=, r1);
 }
 
 void test_10() {
     r1 = mult_by_sd(NAN, 100.0);
+    g_assert_cmpfloat(r1, !=, r1);
+    r1 = mult_by_sd(100.0, NAN);
     g_assert_cmpfloat(r1, !=, r1);
 }
 
@@ -129,22 +179,22 @@ int main(int argc, char **argv) {
     g_test_init(&argc, &argv, NULL);
     
     g_test_set_nonfatal_assertions();
-    g_test_add_func("/random/accuracy-12", test_01);
-    g_test_add_func("/random/accuracy-13", test_02);
-    g_test_add_func("/random/accuracy-14", test_03);
-    g_test_add_func("/random/accuracy-15", test_04);
-    g_test_add_func("/random/accuracy-16", test_05);
+    g_test_add_func("/random/accuracy-12:test_01", test_01);
+    g_test_add_func("/random/accuracy-13:test_02", test_02);
+    g_test_add_func("/random/accuracy-14:test_03", test_03);
+    g_test_add_func("/random/accuracy-15:test_04", test_04);
+    g_test_add_func("/random/accuracy-16:test_05", test_05);
 
-    g_test_add_func("/special_cases/zeros", test_06);
-    g_test_add_func("/special_cases/ones", test_07);
-    g_test_add_func("/special_cases/infinity", test_08);
-    g_test_add_func("/special_cases/infinity_zero", test_09);
-    g_test_add_func("/special_cases/nan", test_10);
+    g_test_add_func("/special_cases/zeros:test_06", test_06);
+    g_test_add_func("/special_cases/simplenums:test_07", test_07);
+    g_test_add_func("/special_cases/infinity:test_08", test_08);
+    g_test_add_func("/special_cases/infinity_zero:test_09", test_09);
+    g_test_add_func("/special_cases/nan:test_10", test_10);
 
-    g_test_add_func("/denormal/overflow", test_11);
-    g_test_add_func("/denormal/rounding_before_the_edge", test_12);
-    g_test_add_func("/denormal/rounding_on_the_edge", test_13);
-    g_test_add_func("/denormal/rounding_over_the_edge", test_14);
-    g_test_add_func("/denormal/general_operation", test_15);
+    g_test_add_func("/denormal/overflow:test_11", test_11);
+    g_test_add_func("/denormal/rounding_before_the_edge:test_12", test_12);
+    g_test_add_func("/denormal/rounding_on_the_edge:test_13", test_13);
+    g_test_add_func("/denormal/rounding_over_the_edge:test_14", test_14);
+    g_test_add_func("/denormal/general_operation:test_15", test_15);
     return g_test_run();
 }
