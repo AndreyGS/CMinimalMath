@@ -17,9 +17,9 @@ The challenge was to achive the preferable range of correctness on perfoming cal
 
 So, refered (sldouble) type is taking a part in math calculations that only include summing and bitwise operators, to perform multiplication here. I know, I know - it's not so hard to implement such logic, but as I said before - here presents only this function and in Java version there is all gamma of all main math operations performed on similar way.
 
-Also this implementation is slightly different from that in Java. There, raw was implemented as String, and now as an unsigned integral. Current change was made because diferent tools are availible on these languages, and ISO C have better one (at least for current project). Actually I made on C for testing proposes a few another fully working verions. They was with raw as a char \* and one of these versions even used dynamic memory allocation :)(bad idea - you're right). But the current is the most "proper" from my perspective.
+Also this implementation is slightly different from that in Java. There, raw was implemented as String, and now as an unsigned integral. Current change was made because diferent tools are availible on these languages, and ISO C have better one (at least for current project). Actually I made on C for testing proposes a few another fully working verions. Some of them were with raw as a char \* and one of it is used dynamic memory allocation (at the expense of 10-20% speed). But the current version is the most "proper" from my perspective.
 
-Compilated program is performing test on 800000 multiplications with random numbers and adjusted precision (numbers after decimal point). If you wish to compare it with Java - it was upgraded and it now includes the same test and the same random number generator as it applied here. Yes, we can't directly compare this result as of slightly different implementation. But I've compared version that was made almost one by one as it present in Java, and may say that with Clang (or GCC) compiler optimization C was faster up to 9-10 times (3.5 times without it). Current versions are different in 14 times if no C optimization is performed and up to 25 times with -O3 option (depending on wich compiler you prefer).
+Compilated program is performing test on 800000 multiplications with random numbers and adjusted precision (numbers after decimal point). If you wish to compare it with Java - it was upgraded and it now includes the same test and the same random number generator as it applied here. Yes, we can't directly compare this result as of slightly different implementation. But I've compared version that was made almost one by one as it present in Java, and may say that with Clang (or GCC) compiler optimization C was faster up to 9-10 times (3.5 times without it). Current versions are different in 15 times if no C optimization is performed and up to 26 times with -O3 option (depending on wich compiler you prefer).
 
 ## How to use
 
@@ -27,7 +27,7 @@ Simple usage:\
 1.\
 make\
 &nbsp;&nbsp;&nbsp;&nbsp;or\
-cc -w -O3 ./src/sldouble.c ./src/sldtestunit.c -o sldmult\
+cc -Wall -Wextra -O3 ./src/sldouble.c ./src/sldtestunit.c -o sldmult\
 2.\
 ./sldmult \[big_test_accuracy(int)] || \[-f] || \[-s] || \[factor1(double) factor2(double)]\
 \
@@ -42,7 +42,7 @@ GLib test (if you have glib-2.0 library):\
 1.\
 make gltest\
 &nbsp;&nbsp;&nbsp;&nbsp;or\
-cc -w -O3 $(shell pkg-config --cflags glib-2.0) ./src/sldouble.c ./src/sldtestunit_gl.c $(shell pkg-config --libs glib-2.0) -o glmulttest\
+cc -Wall -Wextra -O3 $(shell pkg-config --cflags glib-2.0) ./src/sldouble.c ./src/sldtestunit_gl.c $(shell pkg-config --libs glib-2.0) -o glmulttest\
 2.\
 ./glmulttest
 

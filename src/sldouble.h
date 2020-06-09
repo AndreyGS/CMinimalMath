@@ -2,19 +2,21 @@
 
 #include <stdint.h> // uint64_t int64_t
 
-typedef struct {
+/* We're choosed int instead of char for _len, _nsign and _flags fields
+ * for the speed reason. In fact it adds to us around 2% of it. */
+typedef struct sldouble {
     double _dbl;
     uint64_t _raw;
     int64_t _exp;
-    int _len;
-    int _nsign;
-    int _flags;
+    unsigned int _len;
+    unsigned int _nsign;
+    unsigned int _flags;
 } sldouble;
 
 enum { SPECIALV = 1, HASDOUBLE = 2 };
 
 sldouble get_sldouble_fromd(double d);
-sldouble get_sldouble_copy(const sldouble *sd1);
+void get_sldouble_copy(sldouble *target, const sldouble *source);
 double mult_by_sd(double d1, double d2);
 double get_double_ieee754(sldouble *sd);
 
