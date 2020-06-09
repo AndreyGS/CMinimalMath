@@ -36,7 +36,7 @@
     (sdspec)->_dbl = dspec;                     \
     (sdspec)->_raw = 0;                         \
     (sdspec)->_len = 0;                         \
-    (sdspec)->_exp = 1024;                      \
+    (sdspec)->_exp = 0;                         \
     (sdspec)->_flags = SPECIALV | HASDOUBLE;    \
     if (ns) (sdspec)->_nsign = 1;               \
     else (sdspec)->_nsign = 0;                  \
@@ -115,11 +115,11 @@ sldouble get_sldouble_fromd(const double d)
     /* Right offset for uint64_t raw fetching */
     int j = 0;
     /* To get the raw bits value, we need to do some tricky manipulations */
-    --p;
     /* First we need to calculate trailing zeros number */
     /* Here is no need to upperbound checking, if it is not 0 or some of other
      * special cases (and it is not, as we checked it in the begining 
      * of the function), than there must be at least one 1 in mantissa */
+    --p;
     while(*++p == 0) j+=8;
     
     c = *p;
@@ -242,44 +242,37 @@ static void inner_mult(sldouble *restrict const sd,
     if (sd1->_nsign == sd2->_nsign) sd->_nsign = 0;
     else sd->_nsign = 1;
     
-    int i = get_number_of_leading_zeros_64bit_var(&product);
+    const unsigned int i = get_number_of_leading_zeros_64bit_var(&product);
     /* (64 - i + biasproduct) - is result length of virtual product raw;
      * 'virtual' is because actual legth is '64' (as length of uint64_t),
      * but we substracting leading zeros and adding final bias */
     sd->_exp = 64 - i + biasproduct 
             - sd1->_len - sd2->_len + 1 + sd1->_exp + sd2->_exp;
     
-    int j = get_number_of_trailing_zeros_64bit_var(&product);
+    const unsigned int j = get_number_of_trailing_zeros_64bit_var(&product);
     sd->_raw = product >> j;
     sd->_len = 64-i-j;
     sd->_flags = 0;
 }
 
-#define set_special_mult_result(sdspec, f1, f2)             \
-{                                                           \
-                                                            \
-    if (f2->_flags & SPECIALV) {                            \
-            sldouble *temp = f1;                            \
-            f1 = f2;                                        \
-            f2 = temp;                                      \
-    }                                                       \
-                                                            \
-    if (f1->_dbl != f1->_dbl) {                             \
-        set_special_nan(sdspec)                             \
-    } else if (f1->_dbl == 0.0) {                           \
-        if ((f2->_flags & SPECIALV) && f2->_exp == 1024)    \
-            set_special_nan(sdspec)                         \
-        else if (f1->_nsign == f2->_nsign)                  \
-            set_special_zero(sdspec, 0.0, 0)                \
-        else                                                \
-            set_special_zero(sdspec, -0.0, 1)               \
-    } else if ((f2->_flags & SPECIALV) && f2->_exp == 0) {  \
-            set_special_nan(sdspec)                         \
-    } else if (f1->_nsign == f2->_nsign) {                  \
-            set_special_inf(sdspec, INFINITY)               \
-    } else {                                                \
-            set_special_inf(sdspec, -INFINITY)              \
-    }                                                       \
+#define set_special_mult_result(sdspec, f1, f2)                 \
+{                                                               \
+    if ((f1)->_dbl != (f1)->_dbl)                               \
+        set_special_nan(sdspec)                                 \
+    else if ((f1)->_dbl == 0.0) {                               \
+        if (((f2)->_flags & SPECIALV) && (f2)->_exp == 1024)    \
+            set_special_nan(sdspec)                             \
+        else if ((f1)->_nsign == (f2)->_nsign)                  \
+            set_special_zero(sdspec, 0.0, 0)                    \
+        else                                                    \
+            set_special_zero(sdspec, -0.0, 1)                   \
+    }                                                           \
+    else if (((f2)->_flags & SPECIALV) && (f2)->_exp == 0)      \
+        set_special_nan(sdspec)                                 \
+    else if ((f1)->_nsign == (f2)->_nsign)                      \
+        set_special_inf(sdspec, INFINITY)                       \
+    else                                                        \
+        set_special_inf(sdspec, -INFINITY)                      \
 }
 
 double mult_by_sd(const double d1, const double d2)
@@ -288,11 +281,11 @@ double mult_by_sd(const double d1, const double d2)
              sd2 = get_sldouble_fromd(d2);
     sldouble sd;
     
-    if (sd1._flags & SPECIALV || sd2._flags & SPECIALV) {
-        sldouble *restrict const sdspec = &sd,
-                       *f1 = &sd1, *f2 = &sd2;
-        set_special_mult_result(sdspec, f1, f2);
-    } else   
+    if (sd1._flags & SPECIALV)
+        set_special_mult_result(&sd, &sd1, &sd2)
+    else if (sd2._flags & SPECIALV) 
+        set_special_mult_result(&sd, &sd2, &sd1)
+    else   
         inner_mult(&sd, &sd1, &sd2);
 
     return get_double_ieee754(&sd);
