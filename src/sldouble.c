@@ -4,7 +4,7 @@
 /* There is also exist negative NAN and some other special cases
  * of it, but in the C there is only one defined */
 
-/* Here is a 5 special cases: NAN +-INFINITY +-0 
+/* Here is a 5 special cases: +-NAN +-INFINITY +-0 
  *
  * In most times we can handle them all not by selecting in
  * the distant group, but if we do so, that will give us
@@ -13,23 +13,22 @@
  *
  * Also 'SPECIALV' flag is mean that HASDOUBLE flag is also presents.
  * It will simplify many of checkings in related functions */
-#define set_special_nan(sdspec) {               \
-    (sdspec)->_dbl = NAN;                       \
+#define set_special_nan(sdspec, dspec, ns) {    \
+    (sdspec)->_dbl = dspec;                     \
     (sdspec)->_raw = 3;                         \
     (sdspec)->_len = 2;                         \
     (sdspec)->_exp = 1024;                      \
     (sdspec)->_flags = SPECIALV | HASDOUBLE;    \
-    (sdspec)->_nsign = 0;                       \
+    (sdspec)->_nsign = ns;                      \
 }
 
-#define set_special_inf(sdspec, dspec) {        \
+#define set_special_inf(sdspec, dspec, ns) {    \
     (sdspec)->_dbl = dspec;                     \
     (sdspec)->_raw = 0;                         \
     (sdspec)->_len = 0;                         \
     (sdspec)->_exp = 1024;                      \
     (sdspec)->_flags = SPECIALV | HASDOUBLE;    \
-    if (dspec > 0) (sdspec)->_nsign = 0;        \
-    else (sdspec)->_nsign = 1;                  \
+    (sdspec)->_nsign = ns;                      \
 }
     
 #define set_special_zero(sdspec, dspec, ns) {   \
@@ -40,6 +39,16 @@
     (sdspec)->_flags = SPECIALV | HASDOUBLE;    \
     if (ns) (sdspec)->_nsign = 1;               \
     else (sdspec)->_nsign = 0;                  \
+}
+
+#define set_one(sdone, dspec, ns) {            \
+    (sdone)->_dbl = dspec;                     \
+    (sdone)->_raw = 1;                         \
+    (sdone)->_len = 1;                         \
+    (sdone)->_exp = 0;                         \
+    (sdone)->_flags = HASDOUBLE;               \
+    if (ns) (sdone)->_nsign = 1;               \
+    else (sdone)->_nsign = 0;                  \
 }
 
 sldouble get_sldouble_fromd(const double d)
@@ -65,8 +74,8 @@ sldouble get_sldouble_fromd(const double d)
     
     /* Cases of NAN and +-INF */
     if (e == 1024) {
-        if (d != d) set_special_nan(&sd)
-        else set_special_inf(&sd, d)
+        if (d != d) set_special_nan(&sd, d, sd._nsign)
+        else set_special_inf(&sd, d, sd._nsign)
         return sd;
     /* Cases of zeros and denormal numbers */
     } else if (e == -1023) {
@@ -101,20 +110,20 @@ sldouble get_sldouble_fromd(const double d)
     return sd;
 }
 
-static void inner_mult(sldouble *restrict const sd, 
-                 const sldouble *restrict const sd1,
-                 const sldouble *restrict const sd2)
+static void inner_mult(sldouble *const target, 
+                       sldouble *const f1,
+                       sldouble *const f2)
 {
     uint64_t product = 0, unit, raw;
     
     /* This is overall faster to compare only lenghts of sd values
      * rather than calculating the numbers of their ones */
-    if (sd1->_len < sd2->_len) {
-        unit = sd2->_raw;
-        raw = sd1->_raw;
+    if (f1->_len < f2->_len) {
+        unit = f2->_raw;
+        raw = f1->_raw;
     } else {
-        unit = sd1->_raw;
-        raw = sd2->_raw;
+        unit = f1->_raw;
+        raw = f2->_raw;
     }
     int biasproduct = 0; 
     int leadzeros = get_number_of_leading_zeros_64bit_var(&unit);
@@ -174,40 +183,40 @@ static void inner_mult(sldouble *restrict const sd,
         }
     }
 
-    if (sd1->_nsign == sd2->_nsign) sd->_nsign = 0;
-    else sd->_nsign = 1;
+    if (f1->_nsign == f2->_nsign) target->_nsign = 0;
+    else target->_nsign = 1;
     
     const unsigned int i = get_number_of_leading_zeros_64bit_var(&product);
     /* (64 - i + biasproduct) - is result length of virtual product raw;
      * 'virtual' is because actual legth is '64' (as length of uint64_t),
      * but we substracting leading zeros and adding final bias */
-    sd->_exp = 64 - i + biasproduct 
-            - sd1->_len - sd2->_len + 1 + sd1->_exp + sd2->_exp;
+    target->_exp = 64 - i + biasproduct 
+            - f1->_len - f2->_len + 1 + f1->_exp + f2->_exp;
     
     const unsigned int j = get_number_of_trailing_zeros_64bit_var(&product);
-    sd->_raw = product >> j;
-    sd->_len = 64-i-j;
-    sd->_flags = 0;
+    target->_raw = product >> j;
+    target->_len = 64-i-j;
+    target->_flags = 0;
 }
 
 #define set_special_mult_result(sdspec, f1, f2)                 \
 {                                                               \
     if ((f1)->_dbl != (f1)->_dbl)                               \
-        set_special_nan(sdspec)                                 \
+        set_special_nan(sdspec, NAN, 0)                         \
     else if ((f1)->_dbl == 0.0) {                               \
         if (((f2)->_flags & SPECIALV) && (f2)->_exp == 1024)    \
-            set_special_nan(sdspec)                             \
+            set_special_nan(sdspec, NAN, 0)                     \
         else if ((f1)->_nsign == (f2)->_nsign)                  \
             set_special_zero(sdspec, 0.0, 0)                    \
         else                                                    \
             set_special_zero(sdspec, -0.0, 1)                   \
     }                                                           \
     else if (((f2)->_flags & SPECIALV) && (f2)->_exp == 0)      \
-        set_special_nan(sdspec)                                 \
+        set_special_nan(sdspec, NAN, 0)                         \
     else if ((f1)->_nsign == (f2)->_nsign)                      \
-        set_special_inf(sdspec, INFINITY)                       \
+        set_special_inf(sdspec, INFINITY, 0)                    \
     else                                                        \
-        set_special_inf(sdspec, -INFINITY)                      \
+        set_special_inf(sdspec, -INFINITY, 1)                   \
 }
 
 double mult_by_sd(const double d1, const double d2)
@@ -226,6 +235,423 @@ double mult_by_sd(const double d1, const double d2)
     return get_double_ieee754(&sd);
 }
 
+/* To speed up operations in inner_fract_power we must to allow
+ * target and source pointers lead to one struct */
+void inner_sqrt(sldouble *const target, sldouble *const source)
+{
+    /* Here last statement is a rounding, and we're 
+     * always round up (source->_raw + 1) because 
+     * an sldouble format must to hold 0 of trailing zeros */
+    uint64_t raw = (source->_exp & 1)
+                  ? source->_raw << (64 - source->_len)
+                  : (source->_len < 64)
+                  ? source->_raw << (63 - source->_len)        
+                  : (source->_raw + 1) >> 1;
+    
+    uint64_t minuend = (raw >> 62) - 1,
+            subtrahend,
+            filt = 0xffffffffffffffff,
+            root = 1;
+    unsigned int offset = 62;
+    
+    #define residual_macro                              \
+            root <<= 1;                                 \
+            if (minuend >= subtrahend) {                \
+                minuend = minuend + ~subtrahend + 1;    \
+                ++root;                                 \
+            }
+            
+    while (filt >>= 2) {
+        minuend = ((filt & raw) >> (offset -= 2)) + (minuend << 2);
+        subtrahend = (root << 2) + 1;
+        residual_macro
+    }
+
+    while (root < 0x8000000000000000 && minuend < 0x4000000000000000) {
+        minuend <<= 2;
+        subtrahend = (root << 2) + 1;
+        residual_macro
+    }
+    
+    /* Workaround for the last two bits values */
+    if (root < 0x8000000000000000) {
+        if (minuend == 0x4000000000000000) {
+            minuend <<= 1;
+            subtrahend = (root << 1) + 1;
+            residual_macro
+        }
+        if (root < 0x8000000000000000 && minuend >= (root + 1)) ++root;
+    }
+    
+    #undef residual_macro
+    
+    /* There was a ?: condition statement before, but it was lead
+     * to compiler warnings of changes signedness 
+     * about this: 'source->_exp >> 1' statement */
+    if (source->_exp == -1 || source->_exp == 0)
+        target->_exp = source->_exp;
+    else if (source->_exp < 0)
+        target->_exp = (source->_exp >> 1) | 0x8000000000000000;
+    else
+        target->_exp = source->_exp >> 1;
+                  
+    const unsigned int j = get_number_of_trailing_zeros_64bit_var(&root);
+    target->_raw = root >> j;
+    const unsigned int i = get_number_of_leading_zeros_64bit_var(&root);
+    target->_len = 64-i-j;
+    target->_nsign = 0;
+    target->_flags = 0;
+}
+
+#define set_special_root_result(sdspec, num) {  \
+    if ((num)->_dbl == NAN)                     \
+        set_special_nan(sdspec, NAN, 0)         \
+    else if ((num)->_dbl == 0.0)                \
+        set_special_zero(sdspec, 0.0, 0)        \
+    else if ((num)->_nsign)                     \
+        set_special_inf(sdspec, -INFINITY, 1)   \
+    else                                        \
+        set_special_inf(sdspec, INFINITY, 0)    \
+}
+
+
+double sqrt_by_sd(const double d)
+{
+    if (d < 0) return -NAN;
+    //else if (d == 1) return d;
+    
+    sldouble source = get_sldouble_fromd(d);
+    sldouble target;
+    
+    if (source._flags & SPECIALV)
+        set_special_root_result(&target, &source)
+    else
+        inner_sqrt(&target, &source);
+    
+    return get_double_ieee754(&target);
+}
+
+/* The source and power values must be not as any special values */
+void inner_fract_power(sldouble *restrict const target,
+                 const sldouble *restrict const source,
+                 const sldouble *restrict const power)
+{
+    set_one(target, 1, 0)
+    
+    int64_t e = power->_exp;
+    const unsigned int len = power->_len;
+    /* It doesn't not make sense to raise to fract power 
+     * that have an exp over than 63 or less than 0 or only int part digits */
+    if (e > 62 || e >= (len+1) || e < -64) return;
+    
+    sldouble sdunit = *source;
+    
+    uint64_t raw;
+    int offset = 64 - len + (e+1);
+    if (offset < 0)
+        raw = power->_raw >> (-offset);
+    else
+        raw = power->_raw << offset;
+
+    #define main_fract_power_statement { \
+        inner_sqrt(&sdunit, &sdunit); \
+        if (sdunit._raw == 0x7fffffffffffffff \
+            || sdunit._raw == 0xffffffffffffffff) { \
+                sdunit._raw = 1; \
+                sdunit._len = 1; \
+                if (!++sdunit._exp) return; \
+        } \
+        if (raw & 0x8000000000000000) { \
+            inner_mult(target, target, &sdunit); \
+        } \
+    }
+    
+    main_fract_power_statement
+    while (raw <<= 1) main_fract_power_statement
+    
+    #undef main_fract_power_statement
+}
+
+double fract_power_by_sd(const double source, const double power)
+{    
+    if (source < 0) return -NAN;
+    
+    sldouble sdpower = get_sldouble_fromd(power),
+             sdsource = get_sldouble_fromd(source);
+    sldouble target = {};
+
+    if (sdsource._flags & SPECIALV)
+        set_special_root_result(&target, &sdpower)
+    else
+        inner_fract_power(&target, &sdsource, &sdpower);
+    
+    return get_double_ieee754(&target);
+}
+
+/* The source and power values must be not as any special values */
+void inner_int_power(sldouble *restrict const target,
+               const sldouble *restrict const source,
+               const sldouble *restrict const power)
+{
+    int64_t expplusone = power->_exp+1;
+    /* It doesn't not make sense to raise to int power 
+     * that have an exp over than 63 and less than 0 */
+    if (expplusone > 64) {
+        if (((source->_exp > -1) && !power->_nsign)
+            || (source->_exp < 0 && power->_nsign))
+                set_special_inf(target, INFINITY, 0)
+        else
+                set_special_zero(target, 0.0, 0)
+        return;
+    } else if (expplusone < 1) {
+        set_one(target, 1, 0)
+        return;
+    }
+    
+    set_one(target, 1, 0)
+    
+    uint64_t raw;
+    if (expplusone > power->_len)
+        raw = power->_raw << (expplusone - power->_len);
+    else
+        raw = power->_raw >> (power->_len - expplusone);
+    
+    uint64_t filt = 0x8000000000000000 >> (64 - expplusone);
+    
+    /* We may actually put source to inner_mult directly without
+     * making such a copy. But if we do so the compiler will put
+     * to screen a lot of warnings about discardings of 'const'
+     * qualifier of 'source' variable. So we do that cope
+     * only to make compiler happy. */
+    /* #toremove */
+    sldouble sdunit = *source;
+    
+    #define check_int_power_overflow_macro \
+        if (target->_exp > 1023) { \
+            if (!power->_nsign) { \
+                if (source->_nsign && (raw & 1)) \
+                    set_special_inf(target, -INFINITY, 1) \
+                else \
+                    set_special_inf(target, INFINITY, 0) \
+            } else { \
+                if (source->_nsign && (raw & 1)) \
+                    set_special_zero(target, -0.0, 1) \
+                else \
+                    set_special_zero(target, 0.0, 0) \
+            } \
+            return; \
+        } else if (target->_exp < -1074) { \
+            if (!power->_nsign) { \
+                if (source->_nsign && (raw & 1)) \
+                    set_special_zero(target, -0.0, 1) \
+                else \
+                    set_special_zero(target, 0.0, 0) \
+            } else { \
+                if (source->_nsign && (raw & 1)) \
+                    set_special_inf(target, -INFINITY, 1) \
+                else \
+                    set_special_inf(target, INFINITY, 0) \
+            } \
+            return; \
+        }
+
+    if (raw > 1) inner_mult(target, &sdunit, &sdunit);
+    check_int_power_overflow_macro
+    while ((filt >>= 1) > 1) {
+        if (raw & filt) {
+            inner_mult(target, target, &sdunit);
+            check_int_power_overflow_macro
+        }
+        inner_mult(target, target, target);
+        check_int_power_overflow_macro
+    }
+    if (raw & 1)
+        inner_mult(target, target, &sdunit);
+    
+    #undef check_int_power_overflow_macro
+}
+
+double int_power_by_sd(const double source, const double power)
+{    
+    sldouble sdpower = get_sldouble_fromd(power),
+             sdsource = get_sldouble_fromd(source);
+    sldouble target = {};
+
+    if (sdsource._flags & SPECIALV)
+        set_special_root_result(&target, &sdpower)
+    else
+        inner_int_power(&target, &sdsource, &sdpower);
+    
+    return get_double_ieee754(&target);
+}
+
+void inner_division(sldouble *const target,
+              const sldouble *const dividend,
+              const sldouble *const divisor)
+{
+    uint64_t dividendraw = dividend->_raw << (64 - dividend->_len), quotient = 0;
+    const uint64_t divisorraw_big = divisor->_raw << (64 - divisor->_len),
+                 divisorraw_small = (divisor->_len == 64)
+                                   ? (divisorraw_big >> 1) + 1
+                                   : (divisorraw_big >> 1);
+    
+    int initialbias, offset = 0, suboffset = 0, quotoffset;
+    if (dividendraw < divisorraw_big) {
+        initialbias = 1;
+        quotoffset = 64;
+    } else {
+        initialbias = 0;
+        quotoffset = 63;
+    }
+
+    while (quotoffset && dividendraw) {
+        if (quotoffset < offset) {
+            quotient <<= quotoffset;
+            break;
+        } else {
+            quotient <<= offset;
+            quotoffset -= offset;
+        }
+
+        if (dividendraw < divisorraw_big) {
+            if (!quotoffset) break;
+            quotient <<= 1;
+            dividendraw = dividendraw + ~divisorraw_small + 1;
+            suboffset = 1;
+            quotoffset--;
+        } else {
+            dividendraw = dividendraw + ~divisorraw_big + 1;
+            suboffset = 0;
+        }
+        ++quotient;
+        
+        offset = get_number_of_leading_zeros_64bit_var(&dividendraw);
+        dividendraw <<= offset;
+        offset -= suboffset;
+    }
+    
+    if (dividend->_nsign == divisor->_nsign) target->_nsign = 0;
+    else target->_nsign = 1;
+    
+    target->_exp = dividend->_exp - divisor->_exp - initialbias;
+    const unsigned int j = get_number_of_trailing_zeros_64bit_var(&quotient);
+    target->_raw = quotient >> j;
+    const unsigned int i = get_number_of_leading_zeros_64bit_var(&quotient);
+    target->_len = 64-i-j;
+    target->_flags = 0;
+}
+
+double division_by_sd(const double dividend, const double divisor)
+{    
+    sldouble sddividend = get_sldouble_fromd(dividend),
+             sddivisor = get_sldouble_fromd(divisor);
+    sldouble target;
+    
+    /* There is no check of inputs here, for now */
+    inner_division(&target, &sddividend, &sddivisor);
+    
+    return get_double_ieee754(&target);
+}
+
+#define set_special_pow_result_pow(sdspec, sdn, sdp) { \
+    /* Power NANs */ \
+    if ((sdp)->_len == 2) { \
+        if ((sdn)->_dbl == 1) \
+            set_one(sdspec, 1, 0) \
+        else if ((sdn)->_dbl != (sdn)->_dbl) \
+            set_special_nan(sdspec, (sdn)->_dbl, (sdn)->_nsign) \
+        else \
+            set_special_nan(sdspec, (sdp)->_dbl, (sdp)->_nsign) \
+    /* Power ZEROs */ \
+    } else if (!(sdp)->_exp) { \
+        set_one(sdspec, 1, 0) \
+    /* Power INFs */ \
+    } else { \
+        if ((sdn)->_dbl != (sdn)->_dbl) \
+            set_special_nan(sdspec, (sdn)->_dbl, (sdn)->_nsign) \
+        else if ((sdn)->_dbl == 1 || (sdn)->_dbl == -1) \
+            set_one(sdspec, 1, 0) \
+        /* if num is not zero and pow -inf or \
+         * num is zero and pow isinf result is zero */ \
+        else if (((sdp)->_nsign && !((sdn)->_dbl == 0.0)) \
+                || (!(sdp)->_nsign && (sdn)->_dbl == 0.0)) { \
+            set_special_zero(sdspec, 0.0, 0) \
+        } else { \
+            set_special_inf(sdspec, INFINITY, 0) \
+        } \
+    } \
+}
+
+#define set_special_pow_result_num(sdspec, sdn, sdp) { \
+    /* Power NANs */ \
+    if ((sdn)->_dbl != (sdn)->_dbl) { \
+        if (!(sdp)->_dbl) \
+            set_one(sdspec, 1, 0) \
+        else \
+            set_special_nan(sdspec, (sdn)->_dbl, (sdn)->_nsign) \
+    /* Power ZEROs */ \
+    } else if (!(sdn)->_dbl) { \
+        if ((sdp)->_nsign) { \
+            if ((sdn)->_nsign) \
+                set_special_inf(sdspec, -INFINITY, 1) \
+            else \
+                set_special_inf(sdspec, INFINITY, 0) \
+        } else { \
+            if ((sdn)->_nsign) \
+                set_special_zero(sdspec, -0.0, 1) \
+            else \
+                set_special_zero(sdspec, 0.0, 0) \
+        } \
+    /* Power INFs */ \
+    } else { \
+        if ((sdp)->_nsign) { \
+            if ((sdn)->_nsign) \
+                set_special_zero(sdspec, -0.0, 1) \
+            else \
+                set_special_zero(sdspec, 0.0, 0) \
+        } else { \
+            if ((sdn)->_nsign) \
+                set_special_inf(sdspec, -INFINITY, 1) \
+            else \
+                set_special_inf(sdspec, INFINITY, 0) \
+        } \
+    } \
+}
+
+double pow_by_sd(const double number, const double power)
+{
+    if (power == 1) return number;
+    
+    sldouble sdnum = get_sldouble_fromd(number),
+             sdpow = get_sldouble_fromd(power);
+    sldouble target;
+    
+    if (sdpow._flags & SPECIALV)
+        set_special_pow_result_pow(&target, &sdnum, &sdpow)
+    else if (sdnum._flags & SPECIALV)
+        set_special_pow_result_num(&target, &sdnum, &sdpow)
+    /* if there is a root operation with negative number */
+    else if (number < 0 && (sdpow._len > sdpow._exp+1))
+        set_special_nan(&target, -NAN, 1)
+    else {
+        sldouble fppart;
+        inner_fract_power(&fppart, &sdnum, &sdpow);
+        inner_int_power(&target, &sdnum, &sdpow);
+        /* if here is no overflow after the int power operation */
+        if (!(target._flags & 1))
+            inner_mult(&target, &fppart, &target);
+        else 
+            return target._dbl;
+        if (power < 0) {
+            sldouble sd_one;
+            set_one(&sd_one, 1, 0)
+            inner_division(&target, &sd_one, &target);
+        }
+    }
+    
+    return get_double_ieee754(&target);
+}
+
 double get_double_ieee754(sldouble *restrict const sd)
 {
     if (sd->_flags & HASDOUBLE) return sd->_dbl;
@@ -235,8 +661,8 @@ double get_double_ieee754(sldouble *restrict const sd)
     if (exp >= 2047) {
         /* We don't need to check for NAN, because we already have checked
          * above HASDOUBLE flag, and in NAN case it must return true */
-        if (sd->_nsign) set_special_inf(sd, -INFINITY)
-        else set_special_inf(sd, INFINITY)
+        if (sd->_nsign) set_special_inf(sd, -INFINITY, 1)
+        else set_special_inf(sd, INFINITY, 0)
         return sd->_dbl;
     } else if (exp < -52) {
         if (sd->_nsign) set_special_zero(sd, -0.0, 1)
@@ -270,8 +696,8 @@ double get_double_ieee754(sldouble *restrict const sd)
                 
                 /* And as a result, we can get an INFINITY*/
                 if (++exp == 2047) {
-                    if (sd->_nsign) set_special_inf(sd, -INFINITY)
-                    else set_special_inf(sd, INFINITY)
+                    if (sd->_nsign) set_special_inf(sd, -INFINITY, 1)
+                    else set_special_inf(sd, INFINITY, 0)
                     return sd->_dbl;
                 }
                 ++sd->_exp;
@@ -306,6 +732,9 @@ double get_double_ieee754(sldouble *restrict const sd)
     return sd->_dbl = *(double *) p;
 }
 
+/* supress warning: array subscript -1 is outside array bounds of ‘uint64_t[1] */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 int get_number_of_leading_zeros_64bit_var(const void *restrict const num)
 {
     char *restrict p = (char *) num + 8, c;
@@ -325,6 +754,7 @@ int get_number_of_leading_zeros_64bit_var(const void *restrict const num)
 
     return n;
 }
+#pragma GCC diagnostic pop
 
 int get_number_of_trailing_zeros_64bit_var(const void *restrict const num)
 {   
