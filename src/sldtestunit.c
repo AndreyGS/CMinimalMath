@@ -36,7 +36,7 @@
 
 void test_mult(int acc);
 void test_sqrt(int acc);
-void test_pow();
+void test_pow(int acc);
 void test_speed_soft(void);
 void test_speed_fpu(void);
 double get_d_pseudo_random(int i);
@@ -45,35 +45,43 @@ int strcmp_max(char *s1, char *s2, int max);
 int main(int argc, char **argv)
 {
     char argserror[] = "Usage:\n"
-                       "-------\n"
-                       "./sldmult   mult | sqrt | fp | ip | div | pow   OPTIONS\n\n"
-                       "OPTIONS:\n"
-                       "mult: -b [acc] | factor1(double) factor2(double) | -f | -s\n"
-                       "\t-b - big accuracy test of multiplication with default accuracy 12 digits\n"
-                       "\t\tafter decimal point or with acc but not greater than 16\n"
-                       "\tfactor1 factor2 - multiplication of 2 arbitary numbers\n"
-                       "\t-f - fpu multiplication speed test (it's here for historical reasons)\n"
-                       "\t-s - soft multiplication speed test (it's here for historical reasons)\n\n"
-                       "sqrt: -b [acc] | number(double)\n"
-                       "\t-b - big accuracy test of square root with default accuracy 12 digits\n"
-                       "\t\tafter decimal point or with [acc] but not greater than 16\n"
-                       "\tnumber - arbitary number for square root test\n\n"
-                       "fp: number(double) power(double)\n"
-                       "\tnumber power - returns number raised to fraction part of given power\n\n"
-                       "ip: number(double) power(double)\n"
-                       "\tnumber power - returns number raised to integer part of given power\n\n"
-                       "div: dividend(double) divisor(double)\n"
-                       "\tdividend divisor - returns quotient of input\n\n"
-                       "pow: -b | number(double) power(double)\n"
-                       "\t-b - big accuracy test without any limitations of accuracy\n"
-                       "\tnumber power - returns number raised to the given power\n\n"
-                       "P.S.: All big tests are include 3,200,000 operations for fpu "
-                       "and just as much for soft\n\n"
-                       "P.P.S.: Currently the only functions that have checkings on input "
-                       "values are mult, sqrt and pow. They properly hold any legal "
-                       "double value in contrast to fp, ip and div";
-    double a,b;
-    int i;
+       "-------\n"
+       "./sldmult   mult | sqrt | fp | ip | div | pow   OPTIONS\n\n"
+       "OPTIONS:\n"
+       "div:  dividend(double) divisor(double)\n"
+       "      dividend divisor - returns quotient of input\n\n"
+       "fp:   number(double) power(double)\n"
+       "      number power - returns number raised to fraction part of given power\n\n"
+       "ip:   number(double) power(double)\n"
+       "      number power - returns number raised to integer part of given power\n\n"
+       "mult: -b [precision] | factor1(double) factor2(double) | -f | -s\n"
+       "      -b - big accuracy test of multiplication with default precision\n"
+       "           12 digits after decimal point or with\n"
+       "           selected precision  but not greater than 16\n"
+       "      factor1 factor2 - multiplication of 2 selected numbers\n"
+       "      -f - fpu multiplication speed test (it's here for historical reasons)\n"
+       "      -s - soft multiplication speed test (it's here for historical reasons)\n\n"
+       "pow:  -b [precision] | number(double) power(double)\n"
+       "      -b - big accuracy test of raising number to given power \n"
+       "           with default precision 12 digits after decimal point\n"
+       "           or with selected precision  but not greater than 16\n"
+       "      number power - returns number raised to the given power\n\n"
+       "sqrt: -b [precision] | number(double)\n"
+       "      -b - big accuracy test of square root with default precision 12 digits\n"
+       "           after decimal point or with selected precision\n"
+       "           but not greater than 16\n"
+       "      number - selected number for square root test\n\n"
+       "P.S.: All big tests are include 64,000,000 operations for fpu "
+       "and just as much for soft. Also, if you wish to see where result "
+       "between fpu and sldouble calculations would be different you need "
+       "to run one of the big tests with precision 16 - that is now "
+       "the only precision by which you will see that. And even with it, "
+       "the total accuracy is greater that 99,99% in all tests.\n\n"
+       "P.P.S.: Currently the only functions that have checkings on input "
+       "values are mult, sqrt and pow. They properly hold any legal "
+       "double value in contrast to fp, ip and div";
+       
+    double a,b,acc;
     
     struct timeval tim1, tim2;
     gettimeofday(&tim1,NULL);
@@ -88,8 +96,8 @@ int main(int argc, char **argv)
                 if (!strcmp_max("-f", *++argv, 3)) test_speed_fpu();
                 else if (!strcmp_max("-s", *argv, 3)) test_speed_soft();
                 else if (!strcmp_max("-b", *argv, 3)){
-                    if (argc > 3 && (i = atoi(*++argv)))
-                        test_mult(i);
+                    if (argc > 3 && (acc = atoi(*++argv)))
+                        test_mult(acc);
                     else
                         test_mult(12);
                 }
@@ -111,8 +119,8 @@ int main(int argc, char **argv)
         } else if (!strcmp_max("sqrt", *argv, 5)) {
             if (argc > 2) {
                 if (!strcmp_max("-b", *++argv, 3)){
-                    if (argc > 3 && (i = atoi(*++argv)))
-                        test_sqrt(i);
+                    if (argc > 3 && (acc = atoi(*++argv)))
+                        test_sqrt(acc);
                     else
                         test_sqrt(12);
                 }
@@ -180,7 +188,10 @@ int main(int argc, char **argv)
         } else if (!strcmp_max("pow", *argv, 3)) {
             if (argc > 2) {
                 if (!strcmp_max("-b", *++argv, 3)){
-                    test_pow();
+                    if (argc > 3 && (acc = atoi(*++argv)))
+                        test_pow(acc);
+                    else
+                        test_pow(12);
                 }
                 else if (argc > 3) {
                     a = atof(*argv);
@@ -200,129 +211,174 @@ int main(int argc, char **argv)
         }
     }
     gettimeofday(&tim2,NULL);
-    printf("%ld\n", tim2.tv_usec - tim1.tv_usec + (tim2.tv_sec - tim1.tv_sec) * 1000000);
+    printf("Time elapsed: %ldns\n", tim2.tv_usec - tim1.tv_usec + (tim2.tv_sec - tim1.tv_sec) * 1000000);
 }
-
-#define test_macro_start                                        \
-    if (acc > 16) acc = 16;                                     \
-    int i, j, counter = 0;                                      \
-    double factor1 = 1.0e+200,                                  \
-           factor2,                                             \
-           r1, r2;                                              \
-    for (i = 0; i < 400; ++i) {                                 \
-        factor1 = factor1 / 10;                                 \
-        printf("***\n%.2e power random factor\n\n", factor1);   \
-        factor2 = 1.0e+200;                                     \
-        for (j = 0; j < 8000; ++j) {                            \
-            if (j % 50 == 0) factor2 = factor2 / 10;
             
-#define test_macro_middle                                                       \
-            if (r1 != r2 && (r1 == r1 && r2 == r2)) {                           \
-                if (!(r1 == 0.9999999999999999 && r2 == 1.0)                    \
-                 && !(r1 == 1.0 && r2 == 0.9999999999999999)                    \
-                 && !(r1 == 1.0000000000000002 && r2 == 1.0)                    \
-                 && !(r1 == 1.0 && r2 == 1.0000000000000002)) {                 \
-                    sprintf(a1, "%.20e", r1);                                   \
-                    sprintf(a2, "%.20e", r2);                                   \
-                    if (r1 > 0 && r2 > 0) {                                     \
-                        r = strcmp_max(a1, a2, acc+2);                          \
-                    } else if (r1 < 0 && r2 < 0) {                              \
-                        r = strcmp_max(a1, a2, acc+3);                          \
-                    } else {                                                    \
-                        r = -1;                                                 \
-                    }
-                    
 void test_mult(int acc)
 {
-    double d1, d2;
-    int r;
-    char a1[29];
-    char a2[29];
+    if (acc > 16) acc = 16;   
+    double accuracy = 1.0;
+    for (int z = 0; z < acc; z++, accuracy /= 10.0);
     
-    test_macro_start
+    int counter = 0;
+    double factor1 = 1.0e+200,
+           factor2;
+
+    for (int i = 0; i < 400; ++i) {                                 
+        factor1 /= 10;
+        printf("***\n%.2e first random factor\n\n", factor1);
+        factor2 = 1.0e+200;
+        for (int j = 0; j < 400; ++j) {
             
-            d1 = get_d_pseudo_random(j % 16) * factor1;
-            d2 = get_d_pseudo_random((i+j+31) % 16) * factor2;
-            
-            if (j % 2 == 0) d1 = -d1;
-            if (j % 3 == 0) d2 = -d2;
-            
-            r1 = mult_by_sd(d1, d2);
-            r2 = d1*d2;
-            
-    test_macro_middle        
-                    if (r) {
-                        printf("in1: %.20e in2: %.20e\nsld: %.20e\nfpu: %.20e\n"
-                               "\n------------------------------\n",
-                                d1, d2, r1, r2);
-                        counter++;
-                    }
+            #pragma omp parallel for \
+                reduction(+:counter)
+            for (int z = 0; z < 400; ++z) {
+                double d1, d2, r1, r2, r;
+                
+                d1 = get_d_pseudo_random(z % 16) * factor1;
+                d2 = get_d_pseudo_random((j+z+31) % 16) * factor2;
+                
+                if (z % 2 == 0) d1 = -d1;
+                if (z % 3 == 0) d2 = -d2;
+                
+                r1 = mult_by_sd(d1, d2);
+                r2 = d1*d2;
+                
+                if    (((r1 > 0 && r1 < r2) && ((r1 + r1 * accuracy) < r2))
+                    || ((r1 < 0 && r1 > r2) && ((r1 + r1 * accuracy) > r2))
+                    || ((r1 > 0 && r1 > r2) && ((r2 + r2 * accuracy) < r1))
+                    || ((r1 < 0 && r1 < r2) && ((r2 + r2 * accuracy) > r1)))
+                    r = 1;
+                else
+                    r = 0;
+
+                if (r) {
+                    printf("in1: %.20e in2: %.20e\nsld: %.20e\nfpu: %.20e\n"
+                           "\n------------------------------\n",
+                            d1, d2, r1, r2);
+                    counter++;
                 }
             }
         }
     }
     
-    printf("\n%d outputs in real number multiplication test "
-           "that have missed accuracy\n", counter);
+    printf("SUMMARY:\n--------\n"
+           "Tests of multiplication two random numbers was made: 64,000,000\n"
+           "Used precision: +-%.2e\n"
+           "Outputs that had missed accuracy: %d\n"
+           "Total accuracy: %.8g%%\n",
+           accuracy, counter, 100 - (counter/64000000.0) * 100);
 }
 
-void test_pow()
+void test_pow(int acc)
 {
-    int acc = 16; // macro dummy
-    double d1, d2;
+    if (acc > 16) acc = 16;   
+    double accuracy = 1.0;
+    for (int z = 0; z < acc; z++, accuracy /= 10.0);
     
-    test_macro_start
+    int counter = 0;
+    double factor1 = 1.0e+200,
+           factor2;
+    
+    for (int i = 0; i < 400; ++i) {
+        factor1 /= 10;
+        printf("***\n%.2e number random factor\n\n", factor1);
+        factor2 = 1.0e+200;
+        for (int j = 0; j < 400; ++j) {
             
-            d1 = get_d_pseudo_random(j % 16) * factor1;
-            d2 = get_d_pseudo_random((i+j+31) % 16) * factor2;
-            
-            if (j % 2 == 0) d1 = -d1;
-            if (j % 3 == 0) d2 = -d2;
-            
-            r1 = pow_by_sd(d1, d2);
-            r2 = pow(d1,d2);
-            if (r1 != r2 && r1 == r1) {
-                printf("in1: %.20e in2: %.20e\nsld: %.20e\nfpu: %.20e\n"
-                               "\n------------------------------\n",            
-                                d1, d2, r1, r2);                                
-                        counter++;  
+            #pragma omp parallel for \
+                reduction(+:counter)
+            for (int z = 0; z < 400; ++z) {
+                double d1, d2, r1, r2, r;
+                
+                d1 = get_d_pseudo_random(z % 16) * factor1;
+                d2 = get_d_pseudo_random((j+z+31) % 16) * factor2;
+                
+                if (z % 2 == 0) d1 = -d1;
+                if (z % 3 == 0) d2 = -d2;
+                
+                r1 = pow_by_sd(d1, d2);
+                r2 = pow(d1,d2);
+                
+                if    (((r1 > 0 && r1 < r2) && ((r1 + r1 * accuracy) < r2))
+                    || ((r1 < 0 && r1 > r2) && ((r1 + r1 * accuracy) > r2))
+                    || ((r1 > 0 && r1 > r2) && ((r2 + r2 * accuracy) < r1))
+                    || ((r1 < 0 && r1 < r2) && ((r2 + r2 * accuracy) > r1))
+                    || (r1 != r1 && r2 == r2) || (r1 == r1 && r2 != r2))
+                    r = 1;
+                else
+                    r = 0;
+                
+                if (r) {
+                    printf("in1: %.20e in2: %.20e\nsld: %.20e\nfpu: %.20e\n"
+                                   "\n------------------------------\n",
+                                    d1, d2, r1, r2);
+                    counter++;
+                }
             }
+            factor2 /= 10;
         }
     }
     
     
-    printf("\n%d outputs in real number pow test "
-           "that have missed accuracy\n", counter);
+    printf("SUMMARY:\n--------\n"
+           "Tests of raising random number to random power was made: 64,000,000\n"
+           "Used precision: +-%.2e\n"
+           "Outputs that had missed accuracy: %d\n"
+           "Total accuracy: %.8g%%\n",
+           accuracy, counter, 100 - (counter/64000000.0) * 100);
 }
 
 void test_sqrt(int acc)
 {
-    double d;
-    int r;
-    char a1[29];
-    char a2[29];
+    if (acc > 16) acc = 16;   
+    double accuracy = 1.0;
+    for (int z = 0; z < acc; z++, accuracy /= 10.0);
     
-    test_macro_start
+    int counter = 0;
+    double factor1 = 1.0e+200,
+           factor2;
+
+    for (int i = 0; i < 400; ++i) {                                 
+        factor1 /= 10;
+        printf("***\n%.2e first random factor\n\n", factor1);
+        factor2 = 1.0e+200;
+        for (int j = 0; j < 400; ++j) {
             
-            d = get_d_pseudo_random(j % 16) * factor1 * factor2;
+            #pragma omp parallel for \
+                reduction(+:counter)
+            for (int z = 0; z < 400; ++z) {
+                double d, r1, r2, r;
+                
+                d = get_d_pseudo_random(z % 16) * factor1 * factor2;
             
-            r1 = sqrt_by_sd(d);
-            r2 = sqrt(d);
-              
-    test_macro_middle
-                    if (r) {
-                        printf("in: %.20e\nsld: %.20e\nfpu: %.20e\n"
-                               "\n------------------------------\n",
-                                d, r1, r2);
-                        counter++;
-                    }
+                r1 = sqrt_by_sd(d);
+                r2 = sqrt(d);
+                
+                if    (((r1 > 0 && r1 < r2) && ((r1 + r1 * accuracy) < r2))
+                    || ((r1 < 0 && r1 > r2) && ((r1 + r1 * accuracy) > r2))
+                    || ((r1 > 0 && r1 > r2) && ((r2 + r2 * accuracy) < r1))
+                    || ((r1 < 0 && r1 < r2) && ((r2 + r2 * accuracy) > r1)))
+                    r = 1;
+                else
+                    r = 0;
+
+                if (r) {
+                    printf("in: %.20e\nsld: %.20e\nfpu: %.20e\n"
+                           "\n------------------------------\n",
+                            d, r1, r2);
+                    counter++;
                 }
             }
         }
     }
     
-    printf("\n%d outputs in square root test "
-           "that have missed accuracy\n", counter);
+    printf("SUMMARY:\n--------\n"
+           "Tests of extracting square root from random number was made: 64,000,000\n"
+           "Used precision: +-%.2e\n"
+           "Outputs that had missed accuracy: %d\n"
+           "Total accuracy: %.8g%%\n",
+           accuracy, counter, 100 - (counter/64000000.0) * 100);
 }
 
 double get_d_pseudo_random(int i)

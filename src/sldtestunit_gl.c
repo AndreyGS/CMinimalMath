@@ -19,12 +19,18 @@ char a1[25], a2[25];
             r2 = pow(d1, d2); \
         else \
             r2 = d1 * d2; \
-        if ((r1 > 0 && r1 < r2) || (r1 < 0 && r1 > r2)) { \
+        if (r1 > 0 && r1 < r2) { \
             r1 += r1 * Accuracy; \
             g_assert_cmpfloat(r1, >=, r2); \
-        } else if ((r1 > 0 && r1 > r2) || (r1 < 0 && r1 < r2)) { \
+        } else if (r1 < 0 && r1 > r2) { \
+            r1 += r1 * Accuracy; \
+            g_assert_cmpfloat(r1, <=, r2); \
+        } else if (r1 > 0 && r1 > r2) { \
             r2 += r2 * Accuracy; \
             g_assert_cmpfloat(r2, >=, r1); \
+        } else if (r1 < 0 && r1 < r2) { \
+            r2 += r2 * Accuracy; \
+            g_assert_cmpfloat(r2, <=, r1); \
         } else \
             g_assert_cmpfloat(r1, ==, r2); \
         if (g_test_failed()) { \
@@ -411,6 +417,10 @@ void test_20() {
     
     r1 = pow_by_sd(-0.0, -1);
     r2 = pow(-0.0, -1);
+    g_assert_cmpfloat(r1, ==, r2);
+    
+    r1 = pow_by_sd(-0.0, -1.2);
+    r2 = pow(-0.0, -1.2);
     g_assert_cmpfloat(r1, ==, r2);
     
     r1 = pow_by_sd(-0.0, 5);

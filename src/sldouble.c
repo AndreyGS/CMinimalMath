@@ -583,34 +583,31 @@ double division_by_sd(const double dividend, const double divisor)
 }
 
 #define set_special_pow_result_num(sdspec, sdn, sdp) { \
-    /* Power NANs */ \
+    /* Number NANs */ \
     if ((sdn)->_dbl != (sdn)->_dbl) { \
-        if (!(sdp)->_dbl) \
-            set_one(sdspec, 1, 0) \
-        else \
-            set_special_nan(sdspec, (sdn)->_dbl, (sdn)->_nsign) \
-    /* Power ZEROs */ \
+        set_special_nan(sdspec, (sdn)->_dbl, (sdn)->_nsign) \
+    /* Number ZEROs */ \
     } else if (!(sdn)->_dbl) { \
         if ((sdp)->_nsign) { \
-            if ((sdn)->_nsign) \
+            if ((sdp)->_exp < 64 && ((sdp)->_exp + 1 == (sdp)->_len) && (sdn)->_nsign) \
                 set_special_inf(sdspec, -INFINITY, 1) \
             else \
                 set_special_inf(sdspec, INFINITY, 0) \
         } else { \
-            if ((sdn)->_nsign) \
+            if ((sdp)->_exp < 64 && ((sdp)->_exp + 1 == (sdp)->_len) && (sdn)->_nsign) \
                 set_special_zero(sdspec, -0.0, 1) \
             else \
                 set_special_zero(sdspec, 0.0, 0) \
         } \
-    /* Power INFs */ \
+    /* Number INFs */ \
     } else { \
         if ((sdp)->_nsign) { \
-            if ((sdn)->_nsign) \
+            if ((sdp)->_exp < 64 && ((sdp)->_exp + 1 == (sdp)->_len) && (sdn)->_nsign) \
                 set_special_zero(sdspec, -0.0, 1) \
             else \
                 set_special_zero(sdspec, 0.0, 0) \
         } else { \
-            if ((sdn)->_nsign) \
+            if ((sdp)->_exp < 64 && ((sdp)->_exp + 1 == (sdp)->_len) && (sdn)->_nsign) \
                 set_special_inf(sdspec, -INFINITY, 1) \
             else \
                 set_special_inf(sdspec, INFINITY, 0) \

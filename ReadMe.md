@@ -13,13 +13,11 @@ This program defines a surrogate type (structure) - sldouble, that holds differe
 
 The challenge was to achive the preferable range of correctness on perfoming calculations on double values in the form of sldouble structure. And the final results are close enough.
 
-So, refered (sldouble) type is taking a part in math calculations that only include summing and bitwise operators, to perform multiplication, division and raising number to given power. In some cases even substraction was replaced with the summing with complement and 1 addition.
+So, refered (sldouble) type is taking a part in math calculations that only include summing and bitwise operators, to perform multiplication, division and raising number to given power. In some cases even substraction was replaced with the summing with complement and addition of one.
 
 The Java version have the several other functions implemented.
 
 Also current implementation is slightly different from that in Java. There, raw was implemented as String, and now as an unsigned integral. Current change was made because I wished to try something new ^). Actually I made on C for testing proposes a few another fully working verions. Some of them were with raw as a char \* and one of it is used dynamic memory allocation (at the expense of 10-20% speed). But the current version is the most "proper" from my perspective.
-
-Compilated program is performing test on 3,200,000 multiplications with random numbers and adjusted precision (numbers after decimal point). If you wish to compare it with Java - it was upgraded and it now includes the same multiplication test and the same random number generator as it applied here. Yes, we can't directly compare this result as of slightly different implementation. But I've compared version that was made almost one by one as it present in Java, and may say that with Clang (or GCC) compiler optimization C was faster up to 9-10 times (3.5 times without it). Current versions are different in 15 times if no C optimization is performed and up to 26 times with -O3 option (depending on which compiler you prefer) (comparisons are made with multiplication test, with pow method the numbers must be much more different).
 
 ## How to use
 
@@ -27,45 +25,51 @@ Simple usage:\
 1.\
 make\
 &nbsp;&nbsp;&nbsp;&nbsp;or\
-cc -Wall -Wextra -O3 ./src/sldouble.c ./src/sldtestunit.c -lm -o sldtests\
+cc -Wall -Wextra -fopenmp -O3 ./src/sldouble.c ./src/sldtestunit.c -lm -o sldtests\
+where cc is your compiler\
+(you can omit -fopenmp flag if you having an issues with OpenMP library)\
 2.\
-./sldtests   mult | sqrt | fp | ip | div | pow   OPTIONS
+./sldtests&nbsp;&nbsp;&nbsp;mult | sqrt | fp | ip | div | pow&nbsp;&nbsp;&nbsp;OPTIONS
 
-OPTIONS: \
-mult: -b \[acc] | factor1(double) factor2(double) | -f | -s \
-&nbsp;&nbsp;&nbsp;&nbsp;-b - big accuracy test of multiplication with default accuracy 12 digits \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;after decimal point or with acc but not greater than 16 \
-&nbsp;&nbsp;&nbsp;&nbsp;factor1 factor2 - multiplication of 2 arbitary numbers \
-&nbsp;&nbsp;&nbsp;&nbsp;-f - fpu multiplication speed test (it's here for historical reasons) \
-&nbsp;&nbsp;&nbsp;&nbsp;-s - soft multiplication speed test (it's here for historical reasons)
+div:  dividend(double) divisor(double) \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dividend divisor - returns quotient of input
 
-sqrt: -b \[acc] | number \
-&nbsp;&nbsp;&nbsp;&nbsp;-b - big accuracy test of square root with default accuracy 12 digits \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;after decimal point or with \[acc] but not greater than 16 \
-&nbsp;&nbsp;&nbsp;&nbsp;number - arbitary number for square root test
+fp:   number(double) power(double) \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;number power - returns number raised to fraction part of given power
 
-fp: number(double) power(double) \
-&nbsp;&nbsp;&nbsp;&nbsp;number power - returns number raised to fraction part of given power
+ip:   number(double) power(double) \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;number power - returns number raised to integer part of given power
 
-ip: number(double) power(double) \
-&nbsp;&nbsp;&nbsp;&nbsp;number power - returns number raised to integer part of given power
+mult: -b [precision] | factor1(double) factor2(double) | -f | -s \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-b - big accuracy test of multiplication with default precision \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;12 digits after decimal point or with \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;selected precision  but not greater than 16 \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;factor1 factor2 - multiplication of 2 selected numbers \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-f - fpu multiplication speed test (it's here for historical reasons) \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-s - soft multiplication speed test (it's here for historical reasons)
 
-div: dividend(double) divisor(double) \
-&nbsp;&nbsp;&nbsp;&nbsp;dividend divisor - returns quotient of input
+pow:  -b [precision] | number(double) power(double) \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-b - big accuracy test of raising number to given power \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;with default precision 12 digits after decimal point \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or with selected precision  but not greater than 16 \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;number power - returns number raised to the given power
 
-pow: -b | number(double) power(double) \
-&nbsp;&nbsp;&nbsp;&nbsp;-b - big accuracy test without any limitations of accuracy \
-&nbsp;&nbsp;&nbsp;&nbsp;number power - returns number raised to the given power
+sqrt: -b [precision] | number(double) \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-b - big accuracy test of square root with default precision 12 digits \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;after decimal point or with selected precision \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;but not greater than 16 \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;number - selected number for square root test
 
-P.S.: All big tests are include 3,200,000 operations for fpu and just as much for soft
+P.S.: All big tests are include 64,000,000 operations on fpu and just as much on soft. Also, if you wish to see where result between fpu and sldouble calculations would be different you need to run one of the big tests with precision 16 - that is now the only precision by which you will see that. And even with it, the total accuracy is greater that 99,99% in all tests.
 
-P.P.S.: Currently the only functions that have checkings on input values are mult, sqrt and pow. They properly hold any legal double value in contrast to fp, ip and div
+P.P.S.: Currently the only functions that have examinations of input values are mult, sqrt and pow. They properly hold any legal double value in contrast to fp, ip and div.
 
 GLib tests (if you have glib-2.0 library):\
 1.\
 make glsldtests\
 &nbsp;&nbsp;&nbsp;&nbsp;or\
 cc -Wall -Wextra -O3 $(shell pkg-config --cflags glib-2.0) ./src/sldouble.c ./src/sldtestunit_gl.c $(shell pkg-config --libs glib-2.0) -lm -o glsldtests\
+where cc is your compiler\
 2.\
 ./glsldtests
 

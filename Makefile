@@ -7,6 +7,9 @@ CFLAGSGL=$(CFLAGS) `pkg-config --cflags glib-2.0`
 LIBSGL=`pkg-config --libs glib-2.0` -lm
 
 sldtests: clean_mult
+	$(CC) $(CFLAGS) -fopenmp $(OBJECTS) $(LIBS) -o $@
+
+sldtests_wo_omp: clean_mult
 	$(CC) $(CFLAGS) $(OBJECTS) $(LIBS) -o $@
 
 glsldtests: clean_test_gl
