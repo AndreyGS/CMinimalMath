@@ -60,7 +60,7 @@ sqrt: -b [precision] | number(double) \
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;but not greater than 16 \
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;number - selected number for square root test
 
-P.S.: All big tests are include 64,000,000 operations on fpu and just as much on soft. Also, if you wish to see where result between fpu and sldouble calculations would be different you need to run one of the big tests with precision 16 - that is now the only precision by which you will see that. And even with it, the total accuracy is greater that 99,99% in all tests.
+P.S.: All big tests are include 64,000,000 operations on fpu and just as much on soft. Also, if you wish to see where result between fpu and sldouble calculations would be different you need to run one of the big tests with precision 16 - that is now the only precision by which you will see that. And even with it, the total accuracy is greater that 99,97% in all tests.
 
 P.P.S.: Currently the only functions that have examinations of input values are mult, sqrt and pow. They properly hold any legal double value in contrast to fp, ip and div.
 

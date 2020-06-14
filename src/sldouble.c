@@ -103,7 +103,7 @@ sldouble get_sldouble_fromd(const double d)
     uint64_t r = (*((uint64_t *) p) & 0x000fffffffffffff) >> j;
     sd._len = 53 - i - j;
     /* If we've got normal numbers we need to add leading '1' */
-    if (e > -1022) r |= 0x0010000000000000 >> j;
+    if (e > -1023) r |= 0x0010000000000000 >> j;
 
     sd._raw = r;
 
@@ -135,14 +135,13 @@ static void inner_mult(sldouble *const target,
                 unit <<= shift;
                 leadzeros -= shift;
             } else {
+                /* !leadzeros is only possible if unit is 64 bit long and
+                 * because of it its a first iteration of current cycle
+                 * and unit should ends with one and product must be equal to '0' */
                 if (!leadzeros) {
-                    if (unit & 0x01) { unit >>= 1; ++unit; }
-                    else unit >>= 1;
-                    if (product) {
-                        if (product & 0x01) { product >>= 1; ++product; }
-                        else product >>= 1;
-                    }
-                    biasproduct += shift + 1;
+                    unit >>= 1;
+                    ++unit;
+                    ++biasproduct;
                 } else {
                     unit <<= leadzeros-1;
                     spaceneed = -(check-1);
@@ -241,7 +240,7 @@ void inner_sqrt(sldouble *const target, sldouble *const source)
 {
     /* Here last statement is a rounding, and we're 
      * always round up (source->_raw + 1) because 
-     * an sldouble format must to hold 0 of trailing zeros */
+     * the sldouble raw format must to hold 0 of trailing zeros */
     uint64_t raw = (source->_exp & 1)
                   ? source->_raw << (64 - source->_len)
                   : (source->_len < 64)
@@ -417,15 +416,7 @@ void inner_int_power(sldouble *restrict const target,
         raw = power->_raw >> (power->_len - expplusone);
     
     uint64_t filt = 0x8000000000000000 >> (64 - expplusone);
-    
-    /* We may actually put source to inner_mult directly without
-     * making such a copy. But if we do so the compiler will put
-     * to screen a lot of warnings about discardings of 'const'
-     * qualifier of 'source' variable. So we do that cope
-     * only to make compiler happy. */
-    /* #toremove */
-    sldouble sdunit = *source;
-    
+
     #define check_int_power_overflow_macro \
         if (target->_exp > 1023) { \
             if (!power->_nsign) { \
@@ -454,19 +445,28 @@ void inner_int_power(sldouble *restrict const target,
             } \
             return; \
         }
-
-    if (raw > 1) inner_mult(target, &sdunit, &sdunit);
+    
+    /* Current using of pragma directives is because of we put 'source' variable
+     * to inner_mult call, which do not have 'const' qualifiers on its inputs.
+     * But as we know, nothing in 'source' will change through this
+     * calls - and we don't need to create additional variable to copy it
+     * contents to pass it to inner_mult instead of 'source'
+     * variable which is constant. So we just ask compiler to be quiet about that */
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
+    if (raw > 1) inner_mult(target, source, source);
     check_int_power_overflow_macro
     while ((filt >>= 1) > 1) {
         if (raw & filt) {
-            inner_mult(target, target, &sdunit);
+            inner_mult(target, target, source);
             check_int_power_overflow_macro
         }
         inner_mult(target, target, target);
         check_int_power_overflow_macro
     }
     if (raw & 1)
-        inner_mult(target, target, &sdunit);
+        inner_mult(target, target, source);
+    #pragma GCC diagnostic pop
     
     #undef check_int_power_overflow_macro
 }
@@ -490,10 +490,12 @@ void inner_division(sldouble *const target,
               const sldouble *const divisor)
 {
     uint64_t dividendraw = dividend->_raw << (64 - dividend->_len), quotient = 0;
+    
     const uint64_t divisorraw_big = divisor->_raw << (64 - divisor->_len),
-                 divisorraw_small = (divisor->_len == 64)
-                                   ? (divisorraw_big >> 1) + 1
-                                   : (divisorraw_big >> 1);
+                   divisorraw_big_neg = ~divisorraw_big + 1,
+                   divisorraw_small_neg = (divisor->_len == 64)
+                                       ? ~((divisorraw_big >> 1) + 1) + 1
+                                       : ~(divisorraw_big >> 1) + 1;
     
     int initialbias, offset = 0, suboffset = 0, quotoffset;
     if (dividendraw < divisorraw_big) {
@@ -516,11 +518,11 @@ void inner_division(sldouble *const target,
         if (dividendraw < divisorraw_big) {
             if (!quotoffset) break;
             quotient <<= 1;
-            dividendraw = dividendraw + ~divisorraw_small + 1;
+            dividendraw = dividendraw + divisorraw_small_neg;
             suboffset = 1;
             quotoffset--;
         } else {
-            dividendraw = dividendraw + ~divisorraw_big + 1;
+            dividendraw = dividendraw + divisorraw_big_neg;
             suboffset = 0;
         }
         ++quotient;
@@ -729,14 +731,11 @@ double get_double_ieee754(sldouble *restrict const sd)
     return sd->_dbl = *(double *) p;
 }
 
-/* supress warning: array subscript -1 is outside array bounds of ‘uint64_t[1] */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
 int get_number_of_leading_zeros_64bit_var(const void *restrict const num)
 {
-    char *restrict p = (char *) num + 8, c;
-    int n = 0;
-    while (*--p == 0 && n < 64) n += 8;
+    register char *restrict p = (char *) num + 8, c;
+    register int n = 0;
+    while (n < 64 && *--p == 0) n += 8;
    
     c = *p;
     if (n < 64 && !(c & 0x80)) {
@@ -751,12 +750,11 @@ int get_number_of_leading_zeros_64bit_var(const void *restrict const num)
 
     return n;
 }
-#pragma GCC diagnostic pop
 
 int get_number_of_trailing_zeros_64bit_var(const void *restrict const num)
 {   
-    char *restrict p = (char *) num - 1, c;
-    int n = 0;
+    register char *restrict p = (char *) num - 1, c;
+    register int n = 0;
     while (*++p == 0 && n < 64) n += 8;
 
     c = *p;

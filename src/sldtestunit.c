@@ -253,12 +253,13 @@ void test_mult(int acc)
                     r = 0;
 
                 if (r) {
-                    printf("in1: %.20e in2: %.20e\nsld: %.20e\nfpu: %.20e\n"
+                    printf("factor1: %.20e factor2: %.20e\nsld: %.20e\nfpu: %.20e\n"
                            "\n------------------------------\n",
                             d1, d2, r1, r2);
                     counter++;
                 }
             }
+            factor2 /= 10;
         }
     }
     
@@ -310,7 +311,7 @@ void test_pow(int acc)
                     r = 0;
                 
                 if (r) {
-                    printf("in1: %.20e in2: %.20e\nsld: %.20e\nfpu: %.20e\n"
+                    printf("number: %.20e power: %.20e\nsld: %.20e\nfpu: %.20e\n"
                                    "\n------------------------------\n",
                                     d1, d2, r1, r2);
                     counter++;
@@ -370,6 +371,7 @@ void test_sqrt(int acc)
                     counter++;
                 }
             }
+            factor2 /= 10;
         }
     }
     
