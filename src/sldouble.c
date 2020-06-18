@@ -115,33 +115,41 @@ static void inner_mult(sldouble *const target,
                        sldouble *const f2)
 {
     uint64_t product = 0, unit, raw;
+    int leadzeros;
     
     /* This is overall faster to compare only lenghts of sd values
      * rather than calculating the numbers of their ones */
     if (f1->_len < f2->_len) {
         unit = f2->_raw;
+        leadzeros = 64 - f2->_len;
         raw = f1->_raw;
     } else {
         unit = f1->_raw;
+        leadzeros = 64 - f1->_len;
         raw = f2->_raw;
     }
+    
     int biasproduct = 0; 
-    int leadzeros = get_number_of_leading_zeros_64bit_var(&unit);
 
-    for (int shift = 0, check, spaceneed; raw > 0;) {
-        if (raw & 0x01) {
-            check = leadzeros - shift;
-            if (check > 0) {
-                unit <<= shift;
-                leadzeros -= shift;
-            } else {
-                /* !leadzeros is only possible if unit is 64 bit long and
-                 * because of it its a first iteration of current cycle
-                 * and unit should ends with one and product must be equal to '0' */
-                if (!leadzeros) {
-                    unit >>= 1;
-                    ++unit;
-                    ++biasproduct;
+    /* !leadzeros is only possible if unit is 64 bit long and
+     * and unit should ends with one and product must be equal to '0' */
+    if (!leadzeros) {
+        unit >>= 1;
+        ++unit;
+        biasproduct = 1;
+        product = unit;
+    } else {
+        /* As last raw bit at the start is always set to '1' we simply
+         * skip check of it and put initial unit value to product variable */
+        product = unit; 
+        for (int shift = 1, check, spaceneed; raw > 0;) {
+            if ((raw >>= 1) & 0x01) {
+                check = leadzeros - shift;
+                if (check > 0) {
+                    unit <<= shift;
+                    leadzeros -= shift;
+                    product += unit;
+                    shift = 1;
                 } else {
                     unit <<= leadzeros-1;
                     spaceneed = -(check-1);
@@ -152,17 +160,12 @@ static void inner_mult(sldouble *const target,
                         product >>= spaceneed;
                     }
                     biasproduct += spaceneed;
+                    product += unit;
+                    break;
                 }
-                product += unit;
-
-                break;
-            }
-            product += unit;
-            shift = 1;
-        } else {
-            ++shift;
+            } else
+                ++shift;
         }
-        raw >>= 1;
     }
 
     for (int shift = 1; raw > 0;) {
@@ -174,7 +177,6 @@ static void inner_mult(sldouble *const target,
                 product >>= shift;
             }
             biasproduct += shift;
-
             product += unit;
             shift = 1;
         } else {
@@ -330,7 +332,7 @@ double sqrt_by_sd(const double d)
     return get_double_ieee754(&target);
 }
 
-/* The source and power values must be not as any special values */
+/* The source and power numbers must not be equal to any of the special values */
 void inner_fract_power(sldouble *restrict const target,
                  const sldouble *restrict const source,
                  const sldouble *restrict const power)
@@ -387,7 +389,7 @@ double fract_power_by_sd(const double source, const double power)
     return get_double_ieee754(&target);
 }
 
-/* The source and power values must be not as any special values */
+/* The source and power numbers must not be equal to any of the special values */
 void inner_int_power(sldouble *restrict const target,
                const sldouble *restrict const source,
                const sldouble *restrict const power)

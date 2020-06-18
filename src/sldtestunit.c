@@ -213,17 +213,18 @@ int main(int argc, char **argv)
     gettimeofday(&tim2,NULL);
     printf("Time elapsed: %ldns\n", tim2.tv_usec - tim1.tv_usec + (tim2.tv_sec - tim1.tv_sec) * 1000000);
 }
-            
+ 
 void test_mult(int acc)
 {
     if (acc > 16) acc = 16;   
     double accuracy = 1.0;
     for (int z = 0; z < acc; z++, accuracy /= 10.0);
     
-    int counter = 0;
+    int counter = 0, r = 0;
     double factor1 = 1.0e+200,
            factor2;
 
+    double d1 = 0.0, d2 = 0.0, r1 = 0.0, r2 = 0.0;
     for (int i = 0; i < 400; ++i) {                                 
         factor1 /= 10;
         printf("***\n%.2e first random factor\n\n", factor1);
@@ -231,10 +232,10 @@ void test_mult(int acc)
         for (int j = 0; j < 400; ++j) {
             
             #pragma omp parallel for \
-                reduction(+:counter)
+                reduction(+:counter) \
+                firstprivate(d1) firstprivate(d2) \
+                firstprivate(r1) firstprivate(r2) firstprivate(r)
             for (int z = 0; z < 400; ++z) {
-                double d1, d2, r1, r2, r;
-                
                 d1 = get_d_pseudo_random(z % 16) * factor1;
                 d2 = get_d_pseudo_random((j+z+31) % 16) * factor2;
                 
@@ -277,10 +278,11 @@ void test_pow(int acc)
     double accuracy = 1.0;
     for (int z = 0; z < acc; z++, accuracy /= 10.0);
     
-    int counter = 0;
+    int counter = 0, r = 0;
     double factor1 = 1.0e+200,
            factor2;
-    
+           
+    double d1 = 0.0, d2 = 0.0, r1 = 0.0, r2 = 0.0;
     for (int i = 0; i < 400; ++i) {
         factor1 /= 10;
         printf("***\n%.2e number random factor\n\n", factor1);
@@ -288,10 +290,10 @@ void test_pow(int acc)
         for (int j = 0; j < 400; ++j) {
             
             #pragma omp parallel for \
-                reduction(+:counter)
+                reduction(+:counter) \
+                firstprivate(d1) firstprivate(d2) \
+                firstprivate(r1) firstprivate(r2) firstprivate(r)
             for (int z = 0; z < 400; ++z) {
-                double d1, d2, r1, r2, r;
-                
                 d1 = get_d_pseudo_random(z % 16) * factor1;
                 d2 = get_d_pseudo_random((j+z+31) % 16) * factor2;
                 
@@ -336,10 +338,11 @@ void test_sqrt(int acc)
     double accuracy = 1.0;
     for (int z = 0; z < acc; z++, accuracy /= 10.0);
     
-    int counter = 0;
+    int counter = 0, r = 0;
     double factor1 = 1.0e+200,
            factor2;
 
+    double d = 0.0, r1= 0.0, r2 = 0.0;
     for (int i = 0; i < 400; ++i) {                                 
         factor1 /= 10;
         printf("***\n%.2e first random factor\n\n", factor1);
@@ -347,10 +350,10 @@ void test_sqrt(int acc)
         for (int j = 0; j < 400; ++j) {
             
             #pragma omp parallel for \
-                reduction(+:counter)
+                reduction(+:counter) \
+                firstprivate(d) firstprivate(r1) \
+                firstprivate(r2) firstprivate(r)
             for (int z = 0; z < 400; ++z) {
-                double d, r1, r2, r;
-                
                 d = get_d_pseudo_random(z % 16) * factor1 * factor2;
             
                 r1 = sqrt_by_sd(d);
@@ -374,7 +377,6 @@ void test_sqrt(int acc)
             factor2 /= 10;
         }
     }
-    
     printf("SUMMARY:\n--------\n"
            "Tests of extracting square root from random number was made: 64,000,000\n"
            "Used precision: +-%.2e\n"
@@ -396,7 +398,7 @@ double get_d_pseudo_random(int i)
 
 int strcmp_max(char *s1, char *s2, int max)
 {
-    while (--max >= 0) {
+    while (max--) {
         if      (*s1 > *s2)     return  1;
         else if (*s1 < *s2)     return -1;
         else if (*s1 == '\0')   return  0;
