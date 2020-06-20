@@ -84,7 +84,7 @@ sldouble get_sldouble_fromd(const double d)
             return sd; 
         }
         
-        /* Here i is substracting 11 but not 12 because of later
+        /* Here i is substracted by 11 instead of 12 because of later
          * calculating of sd._len, and i must be bigger on 1 there */
         i = get_number_of_leading_zeros_64bit_var(p) - 11;
         e -= i-1;
@@ -285,16 +285,15 @@ void inner_sqrt(sldouble *const target, sldouble *const source)
     }
     
     #undef residual_macro
-    
-    /* There was a ?: condition statement before, but it was lead
-     * to compiler warnings of changes signedness 
-     * about this: 'source->_exp >> 1' statement */
-    if (source->_exp == -1 || source->_exp == 0)
-        target->_exp = source->_exp;
-    else if (source->_exp < 0)
-        target->_exp = (source->_exp >> 1) | 0x8000000000000000;
-    else
-        target->_exp = source->_exp >> 1;
+
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wsign-compare"
+    target->_exp = (source->_exp == -1 || source->_exp == 0)
+                  ? source->_exp
+                  : (source->_exp > 0)
+                  ? source->_exp >> 1
+                  : (source->_exp >> 1) | 0x8000000000000000;
+    #pragma GCC diagnostic pop
                   
     const unsigned int j = get_number_of_trailing_zeros_64bit_var(&root);
     target->_raw = root >> j;
@@ -354,23 +353,18 @@ void inner_fract_power(sldouble *restrict const target,
     else
         raw = power->_raw << offset;
 
-    #define main_fract_power_statement { \
-        inner_sqrt(&sdunit, &sdunit); \
-        if (sdunit._raw == 0x7fffffffffffffff \
-            || sdunit._raw == 0xffffffffffffffff) { \
-                sdunit._raw = 1; \
-                sdunit._len = 1; \
-                if (!++sdunit._exp) return; \
-        } \
-        if (raw & 0x8000000000000000) { \
-            inner_mult(target, target, &sdunit); \
-        } \
-    }
-    
-    main_fract_power_statement
-    while (raw <<= 1) main_fract_power_statement
-    
-    #undef main_fract_power_statement
+    do {
+        inner_sqrt(&sdunit, &sdunit);
+        if (sdunit._raw == 0x7fffffffffffffff
+         || sdunit._raw == 0xffffffffffffffff) {
+            sdunit._raw = 1;
+            sdunit._len = 1;
+            if (!++sdunit._exp) return;
+        }
+        if (raw & 0x8000000000000000) {
+            inner_mult(target, target, &sdunit);
+        }
+    } while (raw <<= 1);
 }
 
 double fract_power_by_sd(const double source, const double power)
@@ -638,11 +632,12 @@ double pow_by_sd(const double number, const double power)
         sldouble fppart;
         inner_fract_power(&fppart, &sdnum, &sdpow);
         inner_int_power(&target, &sdnum, &sdpow);
-        /* if here is no overflow after the int power operation */
-        if (!(target._flags & 1))
-            inner_mult(&target, &fppart, &target);
-        else 
+        /* if here is an overflow after the int power operation */
+        if (target._flags & 1)
             return target._dbl;
+        else
+            inner_mult(&target, &fppart, &target);
+            
         if (power < 0) {
             sldouble sd_one;
             set_one(&sd_one, 1, 0)
@@ -737,7 +732,7 @@ int get_number_of_leading_zeros_64bit_var(const void *restrict const num)
 {
     register char *restrict p = (char *) num + 8, c;
     register int n = 0;
-    while (n < 64 && *--p == 0) n += 8;
+    while (n < 64 && !*--p) n += 8;
    
     c = *p;
     if (n < 64 && !(c & 0x80)) {
@@ -757,7 +752,7 @@ int get_number_of_trailing_zeros_64bit_var(const void *restrict const num)
 {   
     register char *restrict p = (char *) num - 1, c;
     register int n = 0;
-    while (*++p == 0 && n < 64) n += 8;
+    while (n < 64 && !*++p) n += 8;
 
     c = *p;
     if (n < 64 && !(c & 0x01)) {

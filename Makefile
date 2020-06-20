@@ -18,7 +18,7 @@ sldtests_db: clean_sldtests
 sldtests_cov: clean_sldtests_cov
 	$(CC) $(CFLAGS) -fprofile-arcs -ftest-coverage -O0 -fopenmp $(OBJECTS) $(LIBS) -o $@
 
-glsldtests: clean_test_glsldtests
+glsldtests: clean_glsldtests
 	$(CC) $(CFLAGSGL) -O3 $(OBJECTSGL) $(LIBSGL) -o $@
 	
 glsldtests_prof: clean_glsldtests_prof
