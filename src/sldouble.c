@@ -14,38 +14,38 @@
  * Also 'SPECIALV' flag is mean that HASDOUBLE flag is also presents.
  * It will simplify many of checkings in related functions */
 #define set_special_nan(sdspec, dspec, ns) {    \
-    (sdspec)->_dbl = dspec;                     \
-    (sdspec)->_raw = 3;                         \
-    (sdspec)->_len = 2;                         \
-    (sdspec)->_exp = 1024;                      \
-    (sdspec)->_flags = SPECIALV | HASDOUBLE;    \
+    (sdspec)->_dbl = dspec,                     \
+    (sdspec)->_raw = 3,                         \
+    (sdspec)->_len = 2,                         \
+    (sdspec)->_exp = 1024,                      \
+    (sdspec)->_flags = SPECIALV | HASDOUBLE,    \
     (sdspec)->_nsign = ns;                      \
 }
 
 #define set_special_inf(sdspec, dspec, ns) {    \
-    (sdspec)->_dbl = dspec;                     \
-    (sdspec)->_raw = 0;                         \
-    (sdspec)->_len = 0;                         \
-    (sdspec)->_exp = 1024;                      \
-    (sdspec)->_flags = SPECIALV | HASDOUBLE;    \
+    (sdspec)->_dbl = dspec,                     \
+    (sdspec)->_raw = 0,                         \
+    (sdspec)->_len = 0,                         \
+    (sdspec)->_exp = 1024,                      \
+    (sdspec)->_flags = SPECIALV | HASDOUBLE,    \
     (sdspec)->_nsign = ns;                      \
 }
     
 #define set_special_zero(sdspec, dspec, ns) {   \
-    (sdspec)->_dbl = dspec;                     \
-    (sdspec)->_raw = 0;                         \
-    (sdspec)->_len = 0;                         \
-    (sdspec)->_exp = 0;                         \
+    (sdspec)->_dbl = dspec,                     \
+    (sdspec)->_raw = 0,                         \
+    (sdspec)->_len = 0,                         \
+    (sdspec)->_exp = 0,                         \
     (sdspec)->_flags = SPECIALV | HASDOUBLE;    \
     if (ns) (sdspec)->_nsign = 1;               \
     else (sdspec)->_nsign = 0;                  \
 }
 
 #define set_one(sdone, dspec, ns) {            \
-    (sdone)->_dbl = dspec;                     \
-    (sdone)->_raw = 1;                         \
-    (sdone)->_len = 1;                         \
-    (sdone)->_exp = 0;                         \
+    (sdone)->_dbl = dspec,                     \
+    (sdone)->_raw = 1,                         \
+    (sdone)->_len = 1,                         \
+    (sdone)->_exp = 0,                         \
     (sdone)->_flags = HASDOUBLE;               \
     if (ns) (sdone)->_nsign = 1;               \
     else (sdone)->_nsign = 0;                  \
@@ -90,8 +90,8 @@ sldouble get_sldouble_fromd(const double d)
         e -= i-1;
     }
     
-    sd._dbl = d;
-    sd._flags = HASDOUBLE;
+    sd._dbl = d,
+    sd._flags = HASDOUBLE,
     sd._exp = e;
     
     /* Right offset for uint64_t raw fetching */
@@ -151,7 +151,7 @@ static void inner_mult(sldouble *const target,
                     product += unit;
                     shift = 1;
                 } else {
-                    unit <<= leadzeros-1;
+                    unit <<= leadzeros-1,
                     spaceneed = -(check-1);
                     if ((product >> (spaceneed - 1)) & 0x01) {
                         product >>= spaceneed;
@@ -195,8 +195,8 @@ static void inner_mult(sldouble *const target,
             - f1->_len - f2->_len + 1 + f1->_exp + f2->_exp;
     
     const unsigned int j = get_number_of_trailing_zeros_64bit_var(&product);
-    target->_raw = product >> j;
-    target->_len = 64-i-j;
+    target->_raw = product >> j,
+    target->_len = 64-i-j,
     target->_flags = 0;
 }
 
@@ -296,10 +296,12 @@ void inner_sqrt(sldouble *const target, sldouble *const source)
     #pragma GCC diagnostic pop
                   
     const unsigned int j = get_number_of_trailing_zeros_64bit_var(&root);
-    target->_raw = root >> j;
+    
     const unsigned int i = get_number_of_leading_zeros_64bit_var(&root);
-    target->_len = 64-i-j;
-    target->_nsign = 0;
+    
+    target->_raw = root >> j,
+    target->_len = 64-i-j,
+    target->_nsign = 0,
     target->_flags = 0;
 }
 
@@ -545,7 +547,7 @@ double division_by_sd(const double dividend, const double divisor)
              sddivisor = get_sldouble_fromd(divisor);
     sldouble target;
     
-    /* There is no check of inputs here, for now */
+    /* There is no check of inputs, for now */
     inner_division(&target, &sddividend, &sddivisor);
     
     return get_double_ieee754(&target);

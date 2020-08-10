@@ -1,6 +1,6 @@
 # CMinimalMath
 
-Current project is some kind of fork of my another project MinimalMath that I was writing on Java. But with only one method - that perfoming multiplication. This project was built only as subject of self-training on C skills and for test - how fast C can be relatively of Java.
+Current project is some kind of fork of my another project MinimalMath that I was writing on Java. But with not so much operations availible. This project was built only as subject of self-training on C skills and for the test - how fast C can be relatively of Java.
 
 This program defines a surrogate type (structure) - sldouble, that holds different parts of original double in its fields. The parts are:
 
@@ -13,11 +13,11 @@ This program defines a surrogate type (structure) - sldouble, that holds differe
 
 The challenge was to achive the preferable range of correctness on perfoming calculations on double values in the form of sldouble structure. And the final results are close enough.
 
-So, refered (sldouble) type is taking a part in math calculations that only include summing and bitwise operators, to perform multiplication, division and raising number to given power. In some cases even substraction was replaced with the summing with complement and addition of one.
+So, refered (sldouble) type is taking a part in math calculations that only include summing and bitwise operators, to perform multiplication, division and raising number to the given power. In some cases even substraction was replaced with the summing with complement and addition of one.
 
 The Java version have the several other functions implemented.
 
-Also current implementation is slightly different from that in Java. There, raw was implemented as String, and now as an unsigned integral. Current change was made because I wished to try something new ^). Actually I made on C for testing proposes a few another fully working verions. Some of them were with raw as a char \* and one of it is used dynamic memory allocation (at the expense of 10-20% speed). But the current version is the most "proper" from my perspective.
+Also current implementation is slightly different from that in Java. There, raw was implemented as String, and now as an unsigned integral. Current change was made because I wished to try something new ^). Actually I made on C for testing proposes a few another fully working verions. Some of them were with raw as a char\* and one of it is used dynamic memory allocation (at the expense of 10-20% speed). But the current version is the most "proper" from my perspective.
 
 ## How to use
 
