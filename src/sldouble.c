@@ -1,10 +1,8 @@
 #include <math.h>   // NAN +-INFINITY
 #include "sldouble.h"
 
-/* There is also exist negative NAN and some other special cases
- * of it, but in the C there is only one defined */
-
-/* Here is a 5 special cases: +-NAN +-INFINITY +-0 
+/* Here is a 6 special cases: +-NAN +-INFINITY +-0
+ * and separate +-1
  *
  * In most times we can handle them all not by selecting in
  * the distant group, but if we do so, that will give us
@@ -41,14 +39,14 @@
     else (sdspec)->_nsign = 0;                  \
 }
 
-#define set_one(sdone, dspec, ns) {            \
-    (sdone)->_dbl = dspec,                     \
-    (sdone)->_raw = 1,                         \
-    (sdone)->_len = 1,                         \
-    (sdone)->_exp = 0,                         \
-    (sdone)->_flags = HASDOUBLE;               \
-    if (ns) (sdone)->_nsign = 1;               \
-    else (sdone)->_nsign = 0;                  \
+#define set_one(sdone, dspec, ns) {             \
+    (sdone)->_dbl = dspec,                      \
+    (sdone)->_raw = 1,                          \
+    (sdone)->_len = 1,                          \
+    (sdone)->_exp = 0,                          \
+    (sdone)->_flags = HASDOUBLE;                \
+    if (ns) (sdone)->_nsign = 1;                \
+    else (sdone)->_nsign = 0;                   \
 }
 
 sldouble get_sldouble_fromd(const double d)
@@ -57,9 +55,10 @@ sldouble get_sldouble_fromd(const double d)
 
     char *restrict p = (char *) &d;
     
-    /* We are using this way to find out what the leading bit
+    /* We are using this way to find out what is the leading bit
      * status instead of simply comparison of double number with zero 
-     * through '-0.0' value, that is always shown as equal to '+0.0' */
+     * through '-0.0' value, that is always shown as equal to '+0.0' 
+     * and NAN 'signity' status is also must be checked */
     if (*(p + 7) & 0x80) sd._nsign = 1;
     else sd._nsign = 0;
 
@@ -85,7 +84,7 @@ sldouble get_sldouble_fromd(const double d)
         }
         
         /* Here i is substracted by 11 instead of 12 because of later
-         * calculating of sd._len, and i must be bigger on 1 there */
+         * calculating of sd._len, and i must be greater by 1 there */
         i = get_number_of_leading_zeros_64bit_var(p) - 11;
         e -= i-1;
     }
@@ -117,7 +116,7 @@ static void inner_mult(sldouble *const target,
     uint64_t product = 0, unit, raw;
     int leadzeros;
     
-    /* This is overall faster to compare only lenghts of sd values
+    /* It's overall faster to compare only lenghts of sd values
      * rather than calculating the numbers of their ones */
     if (f1->_len < f2->_len) {
         unit = f2->_raw;
@@ -131,7 +130,7 @@ static void inner_mult(sldouble *const target,
     
     int biasproduct = 0; 
 
-    /* !leadzeros is only possible if unit is 64 bit long and
+    /* !leadzeros is only possible if unit is 64 bit long
      * and unit should ends with one and product must be equal to '0' */
     if (!leadzeros) {
         unit >>= 1;
@@ -139,8 +138,8 @@ static void inner_mult(sldouble *const target,
         biasproduct = 1;
         product = unit;
     } else {
-        /* As last raw bit at the start is always set to '1' we simply
-         * skip check of it and put initial unit value to product variable */
+        /* As last bit in the unit raw is always set to '1' we simply
+         * skip checking of it and put initial unit value to product variable */
         product = unit; 
         for (int shift = 1, check, spaceneed; raw > 0;) {
             if ((raw >>= 1) & 0x01) {
@@ -237,11 +236,12 @@ double mult_by_sd(const double d1, const double d2)
 }
 
 /* To speed up operations in inner_fract_power we must to allow
- * target and source pointers lead to one struct */
+ * target and source pointers lead to one struct 
+ * so, no restrict qualifiers are applied here */
 void inner_sqrt(sldouble *const target, sldouble *const source)
 {
-    /* Here last statement is a rounding, and we're 
-     * always round up (source->_raw + 1) because 
+    /* Here, last part of expression include rounding, and we're 
+     * always round up (source->_raw + 1), because 
      * the sldouble raw format must to hold 0 of trailing zeros */
     uint64_t raw = (source->_exp & 1)
                   ? source->_raw << (64 - source->_len)
@@ -342,7 +342,7 @@ void inner_fract_power(sldouble *restrict const target,
     
     int64_t e = power->_exp;
     const unsigned int len = power->_len;
-    /* It doesn't not make sense to raise to fract power 
+    /* It doesn't make sense to raise to fract power 
      * that have an exp over than 63 or less than 0 or only int part digits */
     if (e > 62 || e >= (len+1) || e < -64) return;
     
@@ -627,15 +627,16 @@ double pow_by_sd(const double number, const double power)
         set_special_pow_result_pow(&target, &sdnum, &sdpow)
     else if (sdnum._flags & SPECIALV)
         set_special_pow_result_num(&target, &sdnum, &sdpow)
-    /* if there is a root operation with negative number */
     else if (number < 0 && (sdpow._len > sdpow._exp+1))
+        /* if here is a root taking operation with negative number */
         set_special_nan(&target, -NAN, 1)
     else {
         sldouble fppart;
         inner_fract_power(&fppart, &sdnum, &sdpow);
         inner_int_power(&target, &sdnum, &sdpow);
-        /* if here is an overflow after the int power operation */
+        
         if (target._flags & 1)
+            /* if here is an overflow after the int power operation */
             return target._dbl;
         else
             inner_mult(&target, &fppart, &target);
@@ -657,7 +658,7 @@ double get_double_ieee754(sldouble *restrict const sd)
     int64_t exp = sd->_exp + 1023;
     
     if (exp >= 2047) {
-        /* We don't need to check for NAN, because we already have checked
+        /* We don't need to check for NAN, because we're already have checked
          * above HASDOUBLE flag, and in NAN case it must return true */
         if (sd->_nsign) set_special_inf(sd, -INFINITY, 1)
         else set_special_inf(sd, INFINITY, 0)
@@ -675,7 +676,7 @@ double get_double_ieee754(sldouble *restrict const sd)
     /* Denormal numbers special handling */
     if (exp < 1) leftmost_fraction_significant_bit += exp-1;
     
-    /* 'If' statement for rounding if it's need
+    /* 'If' statement for rounding if it's needed
      * or 'else' - just biasing raw to proper bits positions */
     if (len > leftmost_fraction_significant_bit) {
         raw >>= (len - leftmost_fraction_significant_bit - 1);
@@ -683,9 +684,9 @@ double get_double_ieee754(sldouble *restrict const sd)
         int addoffset = 1;
         if (raw & filt) {
             while (raw & (filt <<= 1));
-            /* If raw through the it _len contains only ones
+            /* If raw through its _len contains only ones
              * (it is true if filt > raw))
-             * rounding can significant change it's value */
+             * rounding can significant change its value */
             if (filt > raw) {
                 /* By this checking, we additionaly incrementing
                  * exponent, for the reason that number that consisting

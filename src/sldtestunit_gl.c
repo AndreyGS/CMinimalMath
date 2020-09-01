@@ -8,7 +8,7 @@ double d1, d2;
 char a1[25], a2[25];
 
 /* Current macros was made with approach to emulate  
- * g_assert_cmpfloat_with_epsilon() if its missing 
+ * g_assert_cmpfloat_with_epsilon() if it's missed
  * on current glib version that is very likely */
 #define comp(func1, Accuracy) \
     for (int i = 0; i++ < 10000;) { \
@@ -36,7 +36,7 @@ char a1[25], a2[25];
         if (g_test_failed()) { \
             printf("---------------\n" \
                    "Current input with accuracy %.1e leads to fail:\n" \
-                   "%.16e * %.16e\nsld: %.16e\nfpu: %.16e\n%d operations " \
+                   "%.16e pow %.16e\nsld: %.16e\nfpu: %.16e\n%d operations " \
                    "were successfully executed in current test before\n" \
                    "---------------\n" \
                    , Accuracy, d1, d2, r1, r2, i); \

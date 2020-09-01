@@ -13,7 +13,7 @@ This program defines a surrogate type (structure) - sldouble, that holds differe
 
 The challenge was to achive the preferable range of correctness on perfoming calculations on double values in the form of sldouble structure. And the final results are close enough.
 
-So, refered (sldouble) type is taking a part in math calculations that only include summing and bitwise operators, to perform multiplication, division and raising number to the given power. In some cases even substraction was replaced with the summing with complement and addition of one.
+So, refered (sldouble) type is taking a part in MATH CALCULATIONS THAT ONLY INCLUDE SUMMING AND BITWISE OPERATORS, to perform multiplication, division and raising number to the given power. In some cases even substraction was replaced with the summing with complement and addition of one.
 
 The Java version have the several other functions implemented.
 

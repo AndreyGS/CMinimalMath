@@ -75,7 +75,7 @@ int main(int argc, char **argv)
        "and just as much for soft. Also, if you wish to see where result "
        "between fpu and sldouble calculations would be different you need "
        "to run one of the big tests with precision 16 - that is now "
-       "the only precision by which you will see that. And even with it, "
+       "the only precision by which you realy see that. And even with it, "
        "the total accuracy is greater that 99,99% in all tests.\n\n"
        "P.P.S.: Currently the only functions that have checkings on input "
        "values are mult, sqrt and pow. They properly hold any legal "
