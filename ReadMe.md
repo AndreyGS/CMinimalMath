@@ -68,7 +68,7 @@ GLib tests (if you have glib-2.0 library):\
 1.\
 make glsldtests\
 &nbsp;&nbsp;&nbsp;&nbsp;or\
-cc -Wall -Wextra -O3 $(shell pkg-config --cflags glib-2.0) ./src/sldouble.c ./src/sldtestunit_gl.c $(shell pkg-config --libs glib-2.0) -lm -o glsldtests\
+cc -Wall -Wextra -O3 `$`(shell pkg-config --cflags glib-2.0) ./src/sldouble.c ./src/sldtestunit_gl.c `$`(shell pkg-config --libs glib-2.0) -lm -o glsldtests\
 where cc is your compiler\
 2.\
 ./glsldtests
